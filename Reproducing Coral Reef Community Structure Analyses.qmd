@@ -2,10 +2,1382 @@
 title: "Reproducing Coral Reef Community Structure Analyses"
 ---
 
-## Quarto
+## Installing Missing Packages
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+Taken from OA_OW_Physiology_manuscript.Rmd lines 70 - 85
 
-```{r}
-1 + 1
+```{r install missing packages, eval=FALSE, message=FALSE, warning=FALSE}
+
+## install packages from source code
+#install.packages("devtools") # if you need to install this package
+#library("devtools")
+#install_github("vqv/ggbiplot")
+
+
+
+### Used packages that need to be installed to run code (and can be sourced easier from CRAN):
+needed_packages <- c("devtools", "knitr", "readr", "broom", "ggplot2", "dplyr", "ggbiplot", "tidyr", "corrgram", "openxlsx", "plotly", "tidyverse", "vegan", "shiny", "Rmisc", "cowplot", "ggfortify", "finalfit", "kableExtra", "readr", "lmerTest", "vroom", "ggpubr", "magick", "Hmisc", "corrplot", "gridGraphics", "grid", "RColorBrewer", "wesanderson", "performance", "MASS", "png", "car", "rcompanion", "janitor", "ncdf4", "raster", "xts", "ggrepel") # Specify necessary packages
+
+not_installed <- needed_packages[!(needed_packages %in% installed.packages()[ , "Package"])] # Extract not installed packages) # Install not installed packages
+if(length(not_installed)) install.packages(not_installed) # Install not installed packages
+
 ```
+
+No issues to report, all packages installed as expected. When run a second time, not_installed list was empty and no packages attempted to install.
+
+## Loading Packages
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 87 - 133
+
+```{r load packages, message=FALSE, warning=FALSE, eval=FALSE}
+
+## Packages to load
+library(knitr)
+library(readr)
+library(broom)
+library(ggplot2)
+library(dplyr)
+library(ggbiplot)
+library(tidyr)
+library(corrgram)
+library(openxlsx)
+library(plotly)
+library(tidyverse)
+library(vegan)
+library(shiny)
+library(Rmisc)
+library(cowplot)
+library(ggfortify)
+library(finalfit)
+library(kableExtra)
+library(readr)
+library(lmerTest)
+library(vroom)
+library(ggpubr)
+library(magick)
+library(Hmisc)
+library(corrplot)
+library(gridGraphics)
+library(grid)
+library(RColorBrewer)
+library(wesanderson)
+library(performance)
+library(MASS)
+library(png)
+library(car)
+library(rcompanion)
+library(janitor)
+library(ncdf4)
+library(raster)
+library(xts)
+library(ggrepel)
+
+## Source the custom functions necessary for running this script
+ source("Code/CustomFunctions.R")
+
+```
+All libraries loaded correctly. As this file is not connected to the GitHub repository at the moment, the source for the custom functions did not load. I have two options to contine: I can load the functions in directly, or I can directly source from the GitHub Repository. The latter is preferred, so I will proceed with that method.
+
+First, I cloned the github repository to my local environment with the following line:
+
+git clone https://github.com/seabove7/Bove_CoralPhysiology/
+
+```{r load packages fixed, message=FALSE, warning=FALSE}
+
+## Packages to load
+library(knitr)
+library(readr)
+library(broom)
+library(ggplot2)
+library(dplyr)
+library(ggbiplot)
+library(tidyr)
+library(corrgram)
+library(openxlsx)
+library(plotly)
+library(tidyverse)
+library(vegan)
+library(shiny)
+library(Rmisc)
+library(cowplot)
+library(ggfortify)
+library(finalfit)
+library(kableExtra)
+library(readr)
+library(lmerTest)
+library(vroom)
+library(ggpubr)
+library(magick)
+library(Hmisc)
+library(corrplot)
+library(gridGraphics)
+library(grid)
+library(RColorBrewer)
+library(wesanderson)
+library(performance)
+library(MASS)
+library(png)
+library(car)
+library(rcompanion)
+library(janitor)
+library(ncdf4)
+library(raster)
+library(xts)
+library(ggrepel)
+
+## Source the custom functions necessary for running this script
+source("Bove_CoralPhysiology/Code/CustomFunctions.R")
+
+```
+
+After cloning and adding the downloaded respository Bove_CoralPhysiology  before the line, I have successfully sourced the code.
+
+## Formatting
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 163 - 229
+
+```{r set formatting and labels}
+
+## Set some standards and units
+
+# dodge width
+dodge=position_dodge(width=0.3)
+dodge2=position_dodge(width = 0.6)
+jitter=position_jitter(width=0.1)
+
+# set figure theme
+theme_set(theme_pubr())
+
+# set parameter labels
+Tlab<-"Temperature (°C)"
+alab<-expression(paste(italic("p"),"CO" [2]~ "("*mu,'atm)'))
+dlab<-expression(paste("Cell density (10"^6,"cells cm"^-2,")"))
+plab<-expression(paste("Total protein (mg cm"^-2,")"))
+calab<-expression(paste("Carbohydrate (mg cm"^-2,")"))
+clab<-expression(paste("Chlorophyll a ("*mu,"g cm"^-2,")"))
+rlab<-expression(paste("Calcification rate (mg cm"^-2~"day"^-1,")"))
+llab<-expression(paste("Total Lipid (mg cm"^-2,")"))
+hlab<-expression(paste("Total Host (mg cm"^-2,")"))
+
+# set the current date
+date <- Sys.Date() 
+
+```
+
+Everything performs as expected
+
+## Reading in data
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 135 - 161
+
+```{r original dataframe adjustment, eval=FALSE}
+
+ df <- read_csv("Data/Raw_data/phys_all_23March2021.csv")[-1] # read in full dataframe
+
+# rename a couple columns
+names(df)[38]<-"carb"
+names(df)[39]<-"lipid"
+names(df)[17]<-"sum"
+names(df)[34]<-"red" 
+
+# set columns as factors
+df$ftemp <- as.factor(df$ftemp)
+df$fpco2 <- as.factor(df$fpco2)
+df$colony <- as.factor(df$colony)
+df$species <- factor(df$species, levels = c("S", "P", "A", "T")) # and reorder these
+
+# replace some pCO2 values with ones we will use moving forward
+df$fpco2 <- gsub("2800", "3290", df$fpco2)
+df$fpco2 <- gsub("280", "300", df$fpco2)
+df$fpco2 <- gsub("400", "420", df$fpco2)
+df$fpco2 <- gsub("700", "680", df$fpco2)
+
+# reorder factors for pCO2 and temp
+df$fpco2 <- factor(df$fpco2, c("420", "T0", "300", "680", "3290"))
+df$ftemp <- factor(df$ftemp, c("28", "T0", "31"))
+
+# calculate phys parameters
+df$den <- (df$den / 1000000) # adjust symbiont density to display 10^6 cells
+df$chla <- (df$chla / df$SA) # standardize chla to surface area
+df$host <- df$pro + df$carb + df$lipid # calculate total host energy reserves (sum of carb, protein, lipids)
+df$treat[df$T0_T90 == "T0"] <- "T0" # replace T0 'treat' with T0 text
+df$treat <- factor(df$treat, levels = c("T0", "288_28", "311_31", "447_28", "405_31", "673_28", "701_31", "3285_28", "3309_31"),
+                   labels = c("T0", "300_28", "300_31", "420_28", "420_31", "680_28", "680_31", "3290_28", "3290_31")) # adjust treatment levels
+
+# add a new treat column for plotting (replacing actual treatment with number for better plotting - see plot XX)
+df$treat2 <- df$treat
+df$treat <- gsub("T0", 2, df$treat)
+df$treat <- gsub("300_28", 4, df$treat)
+df$treat <- gsub("300_31", 4, df$treat)
+df$treat <- gsub("420_28", 6, df$treat)
+df$treat <- gsub("420_31", 6, df$treat)
+df$treat <- gsub("680_28", 8, df$treat)
+df$treat <- gsub("680_31", 8, df$treat)
+df$treat <- gsub("3290_28", 10, df$treat)
+df$treat <- gsub("3290_31", 10, df$treat)
+df$treat <- as.numeric(df$treat) # convert 'treat' column to numerics (again, this is for plotting only)
+
+# inverse of colors (so lower color depicts more bleached coral)
+df$sum <- (df$sum * -1)
+df$red <- (df$red * -1)
+df$blue_bw5 <- (df$blue_bw5 * -1)
+df$green_bw5 <- (df$green_bw5 * -1)
+
+## modify dataframe for simplified version
+df2 <- df[,c(1:13, 41, 14:16, 37:40, 42:43, 17)] # select columns of interest only
+df2 <- gather(df2, param, value, den:sum) # make column of parameter and value
+df2$param <- factor(df2$param, levels = c("pro", "carb", "lipid", "den", "chla", "host", "count")) # reorder parameters
+df2$species <- revalue(x = df2$species, c("S" = "SSID", "P" = "PSTR", "A" = "PAST", "T" = "UTEN")) # rename the species codes
+df2 <- subset(df2, species != "UTEN") # remove UTEN (omitted due to high mortality in some treatments)
+
+## remote T0 samples from dataframe for models
+df2_T90 <- subset(df2, T0_T90 == "T90")
+
+## add treatment column
+df2_T90$treat2 <- paste0(df2_T90$fpco2, df2_T90$temp)
+
+```
+
+Dataframe was not read in. The initial directory must be added because of the cloning process.
+
+```{r original dataframe adjustment fixed}
+
+df <- read_csv("Bove_CoralPhysiology/Data/Raw_data/phys_all_23March2021.csv")[-1] # read in full dataframe
+
+# rename a couple columns
+names(df)[38]<-"carb"
+names(df)[39]<-"lipid"
+names(df)[17]<-"sum"
+names(df)[34]<-"red" 
+
+# set columns as factors
+df$ftemp <- as.factor(df$ftemp)
+df$fpco2 <- as.factor(df$fpco2)
+df$colony <- as.factor(df$colony)
+df$species <- factor(df$species, levels = c("S", "P", "A", "T")) # and reorder these
+
+# replace some pCO2 values with ones we will use moving forward
+df$fpco2 <- gsub("2800", "3290", df$fpco2)
+df$fpco2 <- gsub("280", "300", df$fpco2)
+df$fpco2 <- gsub("400", "420", df$fpco2)
+df$fpco2 <- gsub("700", "680", df$fpco2)
+
+# reorder factors for pCO2 and temp
+df$fpco2 <- factor(df$fpco2, c("420", "T0", "300", "680", "3290"))
+df$ftemp <- factor(df$ftemp, c("28", "T0", "31"))
+
+# calculate phys parameters
+df$den <- (df$den / 1000000) # adjust symbiont density to display 10^6 cells
+df$chla <- (df$chla / df$SA) # standardize chla to surface area
+df$host <- df$pro + df$carb + df$lipid # calculate total host energy reserves (sum of carb, protein, lipids)
+df$treat[df$T0_T90 == "T0"] <- "T0" # replace T0 'treat' with T0 text
+df$treat <- factor(df$treat, levels = c("T0", "288_28", "311_31", "447_28", "405_31", "673_28", "701_31", "3285_28", "3309_31"),
+                   labels = c("T0", "300_28", "300_31", "420_28", "420_31", "680_28", "680_31", "3290_28", "3290_31")) # adjust treatment levels
+
+# add a new treat column for plotting (replacing actual treatment with number for better plotting - see plot XX)
+df$treat2 <- df$treat
+df$treat <- gsub("T0", 2, df$treat)
+df$treat <- gsub("300_28", 4, df$treat)
+df$treat <- gsub("300_31", 4, df$treat)
+df$treat <- gsub("420_28", 6, df$treat)
+df$treat <- gsub("420_31", 6, df$treat)
+df$treat <- gsub("680_28", 8, df$treat)
+df$treat <- gsub("680_31", 8, df$treat)
+df$treat <- gsub("3290_28", 10, df$treat)
+df$treat <- gsub("3290_31", 10, df$treat)
+df$treat <- as.numeric(df$treat) # convert 'treat' column to numerics (again, this is for plotting only)
+
+# inverse of colors (so lower color depicts more bleached coral)
+df$sum <- (df$sum * -1)
+df$red <- (df$red * -1)
+df$blue_bw5 <- (df$blue_bw5 * -1)
+df$green_bw5 <- (df$green_bw5 * -1)
+
+## modify dataframe for simplified version
+df2 <- df[,c(1:13, 41, 14:16, 37:40, 42:43, 17)] # select columns of interest only
+df2 <- gather(df2, param, value, den:sum) # make column of parameter and value
+df2$param <- factor(df2$param, levels = c("pro", "carb", "lipid", "den", "chla", "host", "count")) # reorder parameters
+df2$species <- revalue(x = df2$species, c("S" = "SSID", "P" = "PSTR", "A" = "PAST", "T" = "UTEN")) # rename the species codes
+df2 <- subset(df2, species != "UTEN") # remove UTEN (omitted due to high mortality in some treatments)
+
+## remote T0 samples from dataframe for models
+df2_T90 <- subset(df2, T0_T90 == "T90")
+
+## add treatment column
+df2_T90$treat2 <- paste0(df2_T90$fpco2, df2_T90$temp)
+
+```
+
+With that adjustment, all errors are solved.
+
+## Bootstrap model setup
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 231 - 238
+
+```{r bootstrap model setup}
+
+## Performing the parametric bootstrapping of the model:
+bootnum = 1500 # set number of iterations (we used 2000) between 999 and 9999
+seed = 30 # seed to make results replicatable (our seed was 3)
+set.seed(30)
+
+```
+
+Unclear on whether seeds and bootnumbers need to be changed. Based on the information given, I will redefine them to what the notes suggest and edit again if results are not identical.
+
+```{r bootstrap model setup fixed}
+
+## Performing the parametric bootstrapping of the model:
+bootnum = 2000 # set number of iterations (we used 2000) between 999 and 9999
+seed = 3 # seed to make results replicatable (our seed was 3)
+set.seed(3)
+
+```
+
+## Separating data by parameter
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 231 - 238
+
+```{r create dataframe per parameter}
+
+## Create a forloop to subset the data by each parameter and save as individual dataframes 
+
+# make a list of parameter names
+param_list <- levels(df2_T90$param)
+
+# forloop for dataframes
+for (p in 1:length(param_list)) {
+  param_select <- param_list[p]
+  df_subset <- subset(df2_T90, param == param_select) # subset the dataframe for only one parameter
+  df_subset <- completeFun(df_subset, "value") # run function to remove any missing values
+  df_subset$value <- as.numeric(df_subset$value)
+  df_subset$ftemp <- droplevels(df_subset$ftemp)
+  df_subset$fpco2 <- droplevels(df_subset$fpco2)
+  df_subset$colony <- droplevels(df_subset$colony)
+  df_subset$species <- droplevels(df_subset$species)
+  assign(paste(param_select, "mod_df", sep = "_"), df_subset) # assign the data to dataframe named for each parameter 
+}
+```
+
+Everything runs as expected.
+
+## Creating Dataframes (for Sample Size Calculations)
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 262 - 278
+
+```{r T90 df setup}
+
+df_withT <- df %>% filter(T0_T90 == "T90") %>% droplevels()
+df_90 <- subset(df_withT, species != "T") 
+df_90 <- df_90[,-c(18:33)]
+df_90 <- completeFun(df_90, "den")
+df_90 <- completeFun(df_90, "host")
+df_90 <- completeFun(df_90, "lipid")
+df_90 <- completeFun(df_90, "carb")
+df_90_l <- gather(df_90, param, value, 14:23)
+
+## specific species dataframes
+s_df <- subset(df_90, species == "S") 
+p_df <- subset(df_90, species == "P") 
+a_df <- subset(df_90, species == "A") 
+
+```
+
+## PCA
+
+### PCA for species Siderastrea Siderea
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 290 - 315
+
+```{r SSID PCA, eval=FALSE}
+
+# set up the dataframe
+s_df <- unique(s_df) # remove any duplicate rows
+s_df_l <- gather(s_df, param, value, c(14:17,21:23))
+s_df$fpco2 <- factor(s_df$fpco2, levels = c("300", "420", "680", "3290"))
+sid_pca_df <- s_df[,c(14:17,21:23)]
+sid_pca_df <- rename(sid_pca_df, colour = sum) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+s_pca_mod_full <- adonis2(sid_pca_df ~ reef * ftemp * fpco2, data = s_df, method = 'eu', permutations = bootnum) # below is the model with non sig interactions removed:
+s_pca_mod <- adonis2(sid_pca_df ~ fpco2 + ftemp + reef, data = s_df, method = 'eu', permutations = bootnum, by = "margin")
+s_pca_mod # view SSID adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+s_pca_aic_full <- round(AICc.PERMANOVA2(s_pca_mod_full)[[1]], 1)
+s_pca_aic_final <- round(AICc.PERMANOVA2(s_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+s_pval <- s_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+s_pca <- prcomp(sid_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+Error caught in line 297 of renaming column. 
+
+```{r SSID PCA fixed}
+
+# set up the dataframe
+s_df <- unique(s_df) # remove any duplicate rows
+s_df_l <- gather(s_df, param, value, c(14:17,21:23))
+s_df$fpco2 <- factor(s_df$fpco2, levels = c("300", "420", "680", "3290"))
+sid_pca_df <- s_df[,c(14:17,21:23)]
+sid_pca_df <- dplyr::rename(sid_pca_df, colour = sum) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+s_pca_mod_full <- adonis2(sid_pca_df ~ reef * ftemp * fpco2, data = s_df, method = 'eu', permutations = bootnum) # below is the model with non sig interactions removed:
+s_pca_mod <- adonis2(sid_pca_df ~ fpco2 + ftemp + reef, data = s_df, method = 'eu', permutations = bootnum, by = "margin")
+s_pca_mod # view SSID adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+s_pca_aic_full <- round(AICc.PERMANOVA2(s_pca_mod_full)[[1]], 1)
+s_pca_aic_final <- round(AICc.PERMANOVA2(s_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+s_pval <- s_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+s_pca <- prcomp(sid_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+Specified dplyr package in case it used a different rename function. This renamed the variable in the dataframe so the change was successful. Everything runs as expected.
+
+#### PCA Plot
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 317 - 426
+
+```{r SSID PCA plot, fig.height=8, fig.width=8}
+
+# create labels for p values calculated above
+s_pco2_pval <-substitute(italic(P[pCO[2]])==p, list(p = format(s_pval[1,1], digits = 1)))
+s_temp_pval <-substitute(italic(P[temp])==p, list(p = format(s_pval[2,1], digits = 1)))
+s_reef_pval <-substitute(italic(P[reef])==p, list(p = format(s_pval[3,1], digits = 1)))
+
+
+# temperature = shape; pco2 = colours
+s_pca_plot <- autoplot(s_pca, data = s_df, 
+         colour = "fpco2",
+         shape = "ftemp",
+         frame = FALSE, 
+         loadings = TRUE, 
+         loadings.colour = "grey29", 
+         loadings.label = TRUE,
+         loadings.label.colour = "black",         
+         loadings.label.size = 4, 
+         loadings.label.hjust = 1.5, 
+         loadings.label.vjust = 0.5,
+         loadings.label.repel = TRUE) +
+    stat_ellipse(type = "t", aes(colour = fpco2)) +
+    scale_shape_manual("", labels = c("28 C", "31 C"), values = c(19, 1)) +
+    scale_color_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c("#b2abd2", "#5e3c99", "#fdb863", "#e66101")) +
+    guides(linetype = "none", shape = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 1, nrow = 2)) +
+    guides(color = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 2, nrow = 2, override.aes = list(linetype = c(0, 0, 0, 0)))) +
+    annotate("text", x = -0.338, y = -0.39, label = deparse(s_temp_pval), parse = TRUE, size = 3) +  
+    annotate("text", x = -0.33, y = -0.345, label = deparse(s_pco2_pval), parse = TRUE, size = 3) +
+    xlim(-0.4, 0.4) +
+    theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = c(0.08, 0.97))
+
+guide_pco2_color <- get_legend(s_pca_plot + guides(linetype = "none", shape = "none")) # extract the temp colour legend
+
+s_pca_plot <- s_pca_plot + # add colour guide to new location and save
+  guides(color = "none") +
+  annotation_custom(guide_pco2_color, xmax = 0.78, ymax = -0.28)
+
+
+# reef
+s_reef_pca <- autoplot(s_pca, data = s_df, 
+         colour = "reef",
+         fill = "reef",
+         frame = TRUE, 
+         frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+         frame.level = 0.95, # using 95% CI for all ellipses
+         frame.alpha = 0.01,
+         loadings = TRUE, 
+         loadings.colour = "grey29", 
+         loadings.label = TRUE,
+         loadings.label.colour = "black",         
+         loadings.label.size = 4, 
+         loadings.label.hjust = 1.5, 
+         loadings.label.vjust = 0.5,
+         loadings.label.repel = TRUE) +
+  scale_color_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  scale_fill_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 2, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA)) +
+  annotate("text", x = -0.3, y = -0.38, label = deparse(s_reef_pval), parse = TRUE, size = 3) +
+  ggtitle(expression(paste(bold("A)   "), italic("S. siderea"))))
+
+# pco2 * temp
+s_df$pco2_f <- factor(s_df$pco2, labels = c("pre industrial; 28C", "pre industrial; 31C", "current; 31C", "current; 28C", "end-of-century; 28C", "end-of-century; 31C", "extreme; 28C", "extreme; 31C"))
+s_pt_pca <- autoplot(s_pca, data = s_df, 
+         colour = "pco2_f",
+         fill = "pco2_f",
+         shape = "pco2_f",
+         frame = TRUE, 
+         frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+         frame.level = 0.95, # using 95% CI for all ellipses
+         frame.alpha = 0.01,
+         frame.size = 5,
+         loadings = TRUE, 
+         loadings.colour = "grey29", 
+         loadings.label = TRUE,
+         loadings.label.colour = "black",         
+         loadings.label.size = 4, 
+         loadings.label.hjust = 1.5, 
+         loadings.label.vjust = 0.5,
+         loadings.label.repel = TRUE) +
+  scale_fill_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_colour_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_shape_manual("", values = c(19, 19, 17, 17, 15, 15, 8, 8)) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 4, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+
+### Trying a single PCA with colour for pCO2 and shape for temp:
+# ellipse by temp, points by pCO2
+# s_temp_pca2 <- autoplot(s_pca, data = s_df, 
+#          colour = "fpco2",
+#          shape = "ftemp",
+#          frame = FALSE, 
+#          loadings = TRUE, 
+#          loadings.colour = "grey29", 
+#          loadings.label = TRUE,
+#          loadings.label.colour = "black",         
+#          loadings.label.size = 4, 
+#          loadings.label.hjust = 1.5, 
+#          loadings.label.vjust = 0.5,
+#          loadings.label.repel = TRUE) +
+#     stat_ellipse(type = "t", aes(lty = ftemp, colour = ftemp)) +
+#     scale_linetype_manual(values = c("solid", "dashed")) +
+#     scale_shape_manual("temperature", labels = c("28 C", "31 C"), values = c(19, 1)) +
+#     scale_color_manual("", labels = c("28 C", "31 C", "pre industrial", "current", "end-of-century", "extreme"), values = c("#4393c3", "#b2abd2", "#b2182b", "#5e3c99", "#fdb863", "#e66101")) +
+#     guides(linetype = "none", shape = "none") +
+#     guides(color = guide_legend(nrow = 2, override.aes = list(linetype = c(1, 2, 0, 0, 0, 0), shape = c(19, 1, 19, 19, 19, 19), colour = c("#4393c3", "#b2182b", "#b2abd2", "#5e3c99", "#fdb863", "#e66101")))) +
+#     theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+```
+
+### PCA for species Pseudodiploria strigosa
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 436 - 459
+
+```{r PSTR PCA, eval=FALSE}
+
+# set up the dataframe
+p_df <- unique(p_df) # remove duplicate rows
+p_df_l <- gather(p_df, param, value, c(14:16,21:23))
+p_df$fpco2 <- factor(p_df$fpco2, levels = c("300", "420", "680", "3290"))
+dip_pca_df <- p_df[,c(14:17,21:23)]
+dip_pca_df <- rename(dip_pca_df, colour = sum) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+p_pca_mod_full <- adonis2(dip_pca_df ~ reef * ftemp * fpco2, data = p_df, method = 'eu', permutations = 1000) # below is the model with non sig interactions removed:
+p_pca_mod <- adonis2(dip_pca_df ~ reef + ftemp + fpco2, data = p_df, method = 'eu', permutations = bootnum, by = "margin")
+p_pca_mod # view PSTR adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+p_pca_aic_full <- round(AICc.PERMANOVA2(p_pca_mod_full)[[1]], 1)
+p_pca_aic_final <- round(AICc.PERMANOVA2(p_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+p_pval <- p_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+p_pca <- prcomp(dip_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+Error in rename function as before. Will specify dplyr package and that should solve the error.
+
+```{r PSTR PCA fixed}
+
+# set up the dataframe
+p_df <- unique(p_df) # remove duplicate rows
+p_df_l <- gather(p_df, param, value, c(14:16,21:23))
+p_df$fpco2 <- factor(p_df$fpco2, levels = c("300", "420", "680", "3290"))
+dip_pca_df <- p_df[,c(14:17,21:23)]
+dip_pca_df <- dplyr::rename(dip_pca_df, colour = sum) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+p_pca_mod_full <- adonis2(dip_pca_df ~ reef * ftemp * fpco2, data = p_df, method = 'eu', permutations = 1000) # below is the model with non sig interactions removed:
+p_pca_mod <- adonis2(dip_pca_df ~ reef + ftemp + fpco2, data = p_df, method = 'eu', permutations = bootnum, by = "margin")
+p_pca_mod # view PSTR adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+p_pca_aic_full <- round(AICc.PERMANOVA2(p_pca_mod_full)[[1]], 1)
+p_pca_aic_final <- round(AICc.PERMANOVA2(p_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+p_pval <- p_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+p_pca <- prcomp(dip_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+#### PCA Plot
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 461 - 571
+
+```{r PSTR PCA plot, fig.height=8, fig.width=8}
+
+# create labels for p values calculated above
+p_reef_pval <-substitute(italic(P[reef])==p, list(p = format(p_pval[1,1], digits = 1)))
+p_temp_pval <-substitute(italic(P[temp])==p, list(p = format(p_pval[2,1], digits = 1)))
+p_pco2_pval <-substitute(italic(P[pCO[2]])==p, list(p = format(p_pval[3,1], digits = 2)))
+
+
+# temperature = colour; pco2 = shape
+p_pca_plot <- autoplot(p_pca, data = p_df, 
+         shape = "fpco2",
+         colour = "ftemp",
+         frame = FALSE, 
+         loadings = TRUE, 
+         loadings.colour = "grey29", 
+         loadings.label = TRUE,
+         loadings.label.colour = "black",         
+         loadings.label.size = 4, 
+         loadings.label.hjust = 1.5, 
+         loadings.label.vjust = 0.5,
+         loadings.label.repel = TRUE) +
+  stat_ellipse(type = "t", aes(colour = ftemp)) +
+  scale_shape_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c(19, 17, 15, 8)) +
+  scale_color_manual("", labels = c("28 C", "31 C"), values = c("#4393c3", "#b2182b")) +
+  guides(linetype = "none", shape = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 2, nrow = 2)) +
+  guides(color = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 1, nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  annotate("text", x = -0.150, y = -0.39, label = deparse(p_temp_pval), parse = TRUE, size = 3) +  
+  annotate("text", x = -0.155, y = -0.33, label = deparse(p_pco2_pval), parse = TRUE, size = 3) +
+  theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = c(0.08, 0.97))
+
+guide_temp_color <- get_legend(p_pca_plot + guides(color = "none")) # extract the temp colour legend
+
+p_pca_plot <- p_pca_plot + # add colour guide to new location and save
+  guides(linetype = "none", shape = "none") +
+  annotation_custom(guide_temp_color, xmax = 0.7, ymax = -0.24)
+
+
+# reef
+p_reef_pca <- autoplot(p_pca, data = p_df, 
+                       colour = "reef",
+                       fill = "reef",
+                       frame = TRUE, 
+                       frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                       frame.level = 0.95, # using 95% CI for all ellipses
+                       frame.alpha = 0.01,
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  scale_color_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  scale_fill_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 2, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA)) +
+  annotate("text", x = -0.3, y = -0.38, label = deparse(p_reef_pval), parse = TRUE, size = 3) +
+  ggtitle(expression(paste(bold("A)   "), italic("S. siderea"))))
+
+# pco2 * temp
+p_df$pco2_f <- factor(p_df$pco2, labels = c("pre industrial; 28C", "pre industrial; 31C", "current; 31C", "current; 28C", "end-of-century; 28C", "end-of-century; 31C", "extreme; 28C", "extreme; 31C"))
+p_pt_pca <- autoplot(p_pca, data = p_df, 
+                     colour = "pco2_f",
+                     fill = "pco2_f",
+                     shape = "pco2_f",
+                     frame = TRUE, 
+                     frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                     frame.level = 0.95, # using 95% CI for all ellipses
+                     frame.alpha = 0.01,
+                     frame.size = 5,
+                     loadings = TRUE, 
+                     loadings.colour = "grey29", 
+                     loadings.label = TRUE,
+                     loadings.label.colour = "black",         
+                     loadings.label.size = 4, 
+                     loadings.label.hjust = 1.5, 
+                     loadings.label.vjust = 0.5,
+                     loadings.label.repel = TRUE) +
+  scale_fill_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_colour_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_shape_manual("", values = c(19, 19, 17, 17, 15, 15, 8, 8)) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 4, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+
+
+
+### Trying a single PCA with colour for pCO2 and shape for temp:
+# ellipse by temp, points by pCO2
+# p_temp_pca2 <- autoplot(p_pca, data = p_df, 
+#          colour = "fpco2",
+#          shape = "ftemp",
+#          frame = FALSE, 
+#          loadings = TRUE, 
+#          loadings.colour = "grey29", 
+#          loadings.label = TRUE,
+#          loadings.label.colour = "black",         
+#          loadings.label.size = 4, 
+#          loadings.label.hjust = 1.5, 
+#          loadings.label.vjust = 0.5,
+#          loadings.label.repel = TRUE) +
+#     stat_ellipse(type = "t", aes(lty = ftemp, colour = ftemp)) +
+#     scale_linetype_manual(values = c("solid", "dashed")) +
+#     scale_shape_manual("temperature", labels = c("28 C", "31 C"), values = c(19, 1)) +
+#     scale_color_manual("", labels = c("28 C", "31 C", "pre industrial", "current", "end-of-century", "extreme"), values = c("#4393c3", "#b2abd2", "#b2182b", "#5e3c99", "#fdb863", "#e66101")) +
+#     guides(linetype = "none", shape = "none") +
+#     guides(color = guide_legend(nrow = 2, override.aes = list(linetype = c(1, 2, 0, 0, 0, 0), shape = c(19, 1, 19, 19, 19, 19), colour = c("#4393c3", "#b2182b", "#b2abd2", "#5e3c99", "#fdb863", "#e66101")))) +
+#     theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+```
+
+### PCA for species Porites astreoides
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 579 - 605
+
+```{r PAST PCA, eval=FALSE}
+
+# set up the dataframe
+a_df <- unique(a_df)
+a_df <- a_df[-17,] # we have two from the same colony in 400_28 that are performing similarly so one is being removed (CFAD12)
+a_df_l <- gather(a_df, param, value, c(14:16,21:23))
+a_df$fpco2 <- factor(a_df$fpco2, levels = c("300", "420", "680", "3290"))
+por_pca_df <- a_df[,c(14:16,18,21:23)]
+por_pca_df <- rename(por_pca_df, colour = red) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+a_pca_mod_full <- adonis2(por_pca_df ~ fpco2 * ftemp * reef, data = a_df, method = 'eu', permutations = 1000) # below is the model with non sig interactions removed:
+a_pca_mod <- adonis2(por_pca_df ~ reef + ftemp + fpco2, data = a_df, method = 'eu', permutations = bootnum, by = "margin")
+a_pca_mod # view PAST adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+a_pca_aic_full <- round(AICc.PERMANOVA2(a_pca_mod_full)[[1]], 1)
+a_pca_aic_final <- round(AICc.PERMANOVA2(a_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+a_pval <- a_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+a_pca <- prcomp(por_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+
+Error will be solved with dplyr specification
+
+```{r PAST PCA fixed}
+
+# set up the dataframe
+a_df <- unique(a_df)
+a_df <- a_df[-17,] # we have two from the same colony in 400_28 that are performing similarly so one is being removed (CFAD12)
+a_df_l <- gather(a_df, param, value, c(14:16,21:23))
+a_df$fpco2 <- factor(a_df$fpco2, levels = c("300", "420", "680", "3290"))
+por_pca_df <- a_df[,c(14:16,18,21:23)]
+por_pca_df <- dplyr::rename(por_pca_df, colour = red) # renaming the 'sum' column to 'colour'
+
+# run the adonis
+a_pca_mod_full <- adonis2(por_pca_df ~ fpco2 * ftemp * reef, data = a_df, method = 'eu', permutations = 1000) # below is the model with non sig interactions removed:
+a_pca_mod <- adonis2(por_pca_df ~ reef + ftemp + fpco2, data = a_df, method = 'eu', permutations = bootnum, by = "margin")
+a_pca_mod # view PAST adonis output
+
+# pull AIC from the full and reduced PERMANOVA models
+a_pca_aic_full <- round(AICc.PERMANOVA2(a_pca_mod_full)[[1]], 1)
+a_pca_aic_final <- round(AICc.PERMANOVA2(a_pca_mod)[[1]], 1)
+
+
+# extract pvalues
+a_pval <- a_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+a_pca <- prcomp(por_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+#### PCA Plot
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 607 - 714
+
+```{r PAST PCA plot, fig.height=8, fig.width=8}
+
+# create labels for p values calculated above
+a_reef_pval <-substitute(italic(P[reef])==p, list(p = format(a_pval[1,1], digits = 2)))
+a_temp_pval <-substitute(italic(P[temp])==p, list(p = format(a_pval[2,1], digits = 1)))
+a_pco2_pval <-substitute(italic(P[pCO[2]])==p, list(p = format(a_pval[3,1], digits = 1)))
+
+
+# temperature = shape; pco2 = colours
+a_pca_plot <- autoplot(a_pca, data = a_df, 
+                       colour = "fpco2",
+                       shape = "ftemp",
+                       frame = FALSE, 
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  stat_ellipse(type = "t", aes(colour = fpco2)) +
+  scale_shape_manual("", labels = c("28 C", "31 C"), values = c(19, 1)) +
+  scale_color_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c("#b2abd2", "#5e3c99", "#fdb863", "#e66101")) +
+  lims(y = c(-0.41, 0.4), x = c(-0.3, 0.6)) +
+  guides(linetype = "none", shape = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 1, nrow = 2)) +
+  guides(color = guide_legend(keyheight = 0.7, keywidth = 0.1, order = 2, nrow = 2, override.aes = list(linetype = c(0, 0, 0, 0)))) +
+  annotate("text", x = -0.235, y = -0.408, label = deparse(a_temp_pval), parse = TRUE, size = 3) +  
+  annotate("text", x = -0.235, y = -0.358, label = deparse(a_pco2_pval), parse = TRUE, size = 3) +
+  theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = c(0.08, 0.97))
+
+a_pca_plot <- a_pca_plot + # add colour guide to new location and save
+  guides(color = "none") +
+  annotation_custom(guide_pco2_color, xmax = 0.98, ymax = -0.28)
+
+
+# reef
+a_reef_pca <- autoplot(a_pca, data = a_df, 
+                       colour = "reef",
+                       fill = "reef",
+                       frame = TRUE, 
+                       frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                       frame.level = 0.95, # using 95% CI for all ellipses
+                       frame.alpha = 0.01,
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  scale_color_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  scale_fill_manual("reef environment", labels = c("offshore", "inshore"), values = c("#00a08b", "#e9aa2b")) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 2, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA)) +
+  annotate("text", x = -0.3, y = -0.38, label = deparse(a_reef_pval), parse = TRUE, size = 3) +
+  ggtitle(expression(paste(bold("A)   "), italic("S. siderea"))))
+
+# pco2 * temp
+a_df$pco2_f <- factor(a_df$pco2, labels = c("pre industrial; 28C", "pre industrial; 31C", "current; 31C", "current; 28C", "end-of-century; 28C", "end-of-century; 31C", "extreme; 28C", "extreme; 31C"))
+a_pt_pca <- autoplot(a_pca, data = a_df, 
+                     colour = "pco2_f",
+                     fill = "pco2_f",
+                     shape = "pco2_f",
+                     frame = TRUE, 
+                     frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                     frame.level = 0.95, # using 95% CI for all ellipses
+                     frame.alpha = 0.01,
+                     frame.size = 5,
+                     loadings = TRUE, 
+                     loadings.colour = "grey29", 
+                     loadings.label = TRUE,
+                     loadings.label.colour = "black",         
+                     loadings.label.size = 4, 
+                     loadings.label.hjust = 1.5, 
+                     loadings.label.vjust = 0.5,
+                     loadings.label.repel = TRUE) +
+  scale_fill_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_colour_manual("", values = c("#d1e5f0", "#fddbc7", "#f4a582", "#92c5de", "#4393c3", "#d6604d", "#2166ac", "#b2182b")) +
+  scale_shape_manual("", values = c(19, 19, 17, 17, 15, 15, 8, 8)) +
+  guides(fill = FALSE, color = guide_legend(keyheight = 0.3, nrow = 4, override.aes = list(linetype = c(0, 0))), shape = guide_legend(nrow = 2, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+
+### Trying a single PCA with colour for pCO2 and shape for temp:
+# ellipse by temp, points by pCO2
+# a_temp_pca2 <- autoplot(a_pca, data = a_df, 
+#          colour = "fpco2",
+#          shape = "ftemp",
+#          frame = FALSE, 
+#          loadings = TRUE, 
+#          loadings.colour = "grey29", 
+#          loadings.label = TRUE,
+#          loadings.label.colour = "black",         
+#          loadings.label.size = 4, 
+#          loadings.label.hjust = 1.5, 
+#          loadings.label.vjust = 0.5,
+#          loadings.label.repel = TRUE) +
+#     stat_ellipse(type = "t", aes(lty = ftemp, colour = ftemp)) +
+#     scale_linetype_manual(values = c("solid", "dashed")) +
+#     scale_shape_manual("temperature", labels = c("28 C", "31 C"), values = c(19, 1)) +
+#     scale_color_manual("", labels = c("28 C", "31 C", "pre industrial", "current", "end-of-century", "extreme"), values = c("#4393c3", "#b2abd2", "#b2182b", "#5e3c99", "#fdb863", "#e66101")) +
+#     guides(linetype = "none", shape = "none") +
+#     guides(color = guide_legend(nrow = 2, override.aes = list(linetype = c(1, 2, 0, 0, 0, 0), shape = c(19, 1, 19, 19, 19, 19), colour = c("#4393c3", "#b2182b", "#b2abd2", "#5e3c99", "#fdb863", "#e66101")))) +
+#     theme(legend.background = element_rect(fill = "transparent", color = NA), legend.position = "bottom")
+
+```
+
+### Figure 1
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 722 - 733
+
+```{r PCA plot, fig.height=4, fig.width=14}
+
+ggarrange(s_pca_plot, p_pca_plot, a_pca_plot, ncol = 3, labels = c("A", "B", "C")) + 
+  theme(plot.background = element_rect(fill = "white", colour = NA))
+
+  ggsave("Figures/Final_Figures/Figure1_PhysPCA.pdf", width = 14, height = 4, useDingbats=FALSE)
+  ggsave("Figures/Final_Figures/Figure1_PhysPCA.png", width = 14, height = 4, dpi = 650)
+  ggsave("Figures/Final_Figures/Figure1_PhysPCA.tiff", width = 14, height = 4, dpi = 650)
+
+```
+
+These figures are identical to those in the paper.
+
+### Total PCA
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 741 - 760
+
+```{r all PCA}
+
+# set up the dataframe
+all_df <- unique(df_90) # remove any duplicate rows
+all_df_l <- gather(all_df, param, value, c(14:17,21:23))
+all_df$fpco2 <- factor(all_df$fpco2, levels = c("300", "420", "680", "3290"))
+all_pca_df <- all_df[,c(14:17,21:23)]
+
+# run the adonis
+#all_pca_mod <- adonis2(all_pca_df ~ reef * ftemp * fpco2 * species, data = all_df, method = 'eu', permutations = bootnum) # below is the model with non sig interactions removed:
+all_pca_mod <- adonis2(all_pca_df ~ fpco2 + ftemp + reef + species + ftemp:species + fpco2:species + reef:species, data = all_df, method = 'eu', permutations = bootnum)
+all_pca_mod # view all adonis output
+
+# extract pvalues
+all_pval <- all_pca_mod["Pr(>F)"]
+
+# perform principal component analysis (PCA)
+all_pca <- prcomp(all_pca_df, center = TRUE, scale= TRUE)
+
+```
+
+#### Total PCA Plot
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 762 - 849
+
+```{r all PCA plot, fig.height=8, fig.width=8}
+
+# create labels for p values calculated above
+all_pco2_pval <-substitute(italic(P[pCO[2]])==p, list(p = format(all_pval[1,1], digits = 1)))
+all_temp_pval <-substitute(italic(P[temp])==p, list(p = format(all_pval[2,1], digits = 2)))
+all_reef_pval <-substitute(italic(P[reef])==p, list(p = format(all_pval[3,1], digits = 1)))
+all_species_pval <-substitute(italic(P[species])==p, list(p = format(all_pval[4,1], digits = 1)))
+all_s_pco2_pval <-substitute(italic(P[species~X~pCO[2]])==p, list(p = format(all_pval[5,1], digits = 1)))
+all_s_reef_pval <-substitute(italic(P[species~X~reef])==p, list(p = format(all_pval[6,1], digits = 2)))
+all_s_temp_pval <-substitute(italic(P[species~X~temp])==p, list(p = format(all_pval[7,1], digits = 1)))
+
+
+# species
+species_pca_plot <- autoplot(all_pca, data = all_df, 
+                       colour = "species",
+                       #shape = "species",
+                       #shape = "fpco2",
+                       #fill = "species",               
+                       frame = TRUE, 
+                       frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                       frame.level = 0.95, # using 95% CI for all ellipses
+                       frame.alpha = 0.01,
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  scale_color_manual("", labels = c("S. siderea", "P. strigosa", "P. astreoides"), values = c("#867796", "#73CCD2", "#D2D69B")) +
+  guides(shape = FALSE, fill = FALSE, color = guide_legend(keyheight = 0.1, nrow = 3, byrow = TRUE, override.aes = list(linetype = c(0, 0, 0)))) +
+  theme(legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA), legend.position = c(0.16, 0.9), legend.text = element_text(face = "italic")) +
+  annotate("text", x = -0.18, y = -0.108, label = deparse(all_species_pval), parse = TRUE, size = 3)
+
+# temperature
+all_temp_pca <- autoplot(all_pca, data = all_df, 
+                       colour = "ftemp",
+                       #shape = "fpco2",
+                       shape = "ftemp",
+                       fill = "ftemp",               
+                       frame = TRUE, 
+                       frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                       frame.level = 0.95, # using 95% CI for all ellipses
+                       frame.alpha = 0.01,
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  scale_shape_manual("temperature", labels = c("28C", "31C"), values = c(21, 21)) +
+  scale_color_manual("temperature", labels = c("28C", "31C"), values = c("#4393c3", "#b2182b"))+
+  scale_fill_manual("temperature", labels = c("28C", "31C"), values = c("#4393c3", "transparent"))+
+  guides(color = guide_legend(keyheight = 0.3, nrow = 4, byrow = TRUE, override.aes = list(linetype = c(0, 0)))) +
+  theme(legend.position = c(0.11, 0.9), legend.title = element_blank(), legend.background = element_rect(fill = "transparent", color = NA)) +
+  annotate("text", x = -0.19, y = -0.118, label = deparse(all_temp_pval), parse = TRUE, size = 3) +
+  annotate("text", x = -0.17, y = -0.14, label = deparse(all_s_temp_pval), parse = TRUE, size = 3)
+
+# pco2
+all_pco2_pca <- autoplot(all_pca, data = all_df, 
+                       colour = "fpco2",
+                       #shape = "ftemp",
+                       fill = "fpco2",
+                       shape = "fpco2",
+                       frame = TRUE, 
+                       frame.type = "t", # displaying ellipses with multivariate t-distributions for small n producing heavier tails
+                       frame.level = 0.95, # using 95% CI for all ellipses
+                       frame.alpha = 0.01,
+                       loadings = TRUE, 
+                       loadings.colour = "grey29", 
+                       loadings.label = TRUE,
+                       loadings.label.colour = "black",         
+                       loadings.label.size = 4, 
+                       loadings.label.hjust = 1.5, 
+                       loadings.label.vjust = 0.5,
+                       loadings.label.repel = TRUE) +
+  scale_shape_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c(21, 23, 24, 22)) +
+  scale_fill_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c("#b2abd2", "#5e3c99", "#fdb863", "#e66101"))+
+  scale_color_manual("", labels = c("pre industrial", "current", "end-of-century", "extreme"), values = c("#b2abd2", "#5e3c99", "#fdb863", "#e66101"))+
+  guides(color = guide_legend(nrow = 4, override.aes = list(linetype = c(0, 0, 0, 0)))) +
+  annotate("text", x = -0.19, y = -0.118, label = deparse(all_pco2_pval), parse = TRUE, size = 3) +
+  annotate("text", x = -0.17, y = -0.14, label = deparse(all_s_pco2_pval), parse = TRUE, size = 3) +
+  theme(legend.position = c(0.18, 0.9), legend.background = element_rect(fill = "transparent", color = NA))
+
+```
+
+### Figure 4
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 851 - 858
+
+```{r species PCA plot, fig.width = 13, fig.height = 4}
+
+ggarrange(species_pca_plot, all_pco2_pca, all_temp_pca, nrow =1, labels = "AUTO")
+  ggsave("Figures/Final_Figures/Figure4_SpeciesPCA.pdf", width = 13, height = 4, useDingbats=FALSE)
+  ggsave("Figures/Final_Figures/Figure4_SpeciesPCA.png", width = 13, height = 4, dpi = 650)
+  ggsave("Figures/Final_Figures/Figure4_SpeciesPCA.tiff", width = 13, height = 4, dpi = 650)
+
+```
+
+## Correlation Matrices and Scatter Plots
+
+### Correlation Matrix SSID
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 893 - 914
+
+```{r SSID correlation matrix and scatter plots, results='hide', eval=FALSE}
+
+## Create new correlation dataframe for SSID
+sid_corr_df <- s_df[,c(10:11,14:17,21:23)] %>% 
+  mutate(shape = case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+
+## Plot correlation matrix and scatter plot of all SSID physiology  
+png(file = "Figures/Supplemental_Figures/SSID_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300)  
+
+corrgram(sid_corr_df, order = FALSE, lower.panel = panel.fill.R2, upper.panel = panel.pts.col, text.panel = panel.txt.brdr,
+         col.regions = colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = sid_corr_df$color, pch = as.numeric(as.character(sid_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+Passing parameter %>% brings up error. Switching to pipe operator |> bypasses the error. Mutate function not found, fixed by specifying dplyr package. The same procedure was executed to fix the error on the case_when function. PNG unable to open, so I created a folder as described in line 1104 to allow png to resume. Corrgram function not found, so I specified that it was inside the corrgram package and the chunk fully ran.
+
+```{r SSID correlation matrix and scatter plots fixed, results='hide', warning = FALSE}
+
+## Create new correlation dataframe for SSID
+sid_corr_df <- s_df[,c(10:11,14:17,21:23)] |>
+  dplyr::mutate(shape = dplyr::case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = dplyr::case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+
+## Plot correlation matrix and scatter plot of all SSID physiology  
+png(file = "Figures/Supplemental_Figures/SSID_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300)  
+
+corrgram::corrgram(sid_corr_df, order = FALSE, lower.panel = panel.fill.R2, upper.panel = panel.pts.col, text.panel = panel.txt.brdr,
+         col.regions = colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = sid_corr_df$color, pch = as.numeric(as.character(sid_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+### Correlation Matrix PSTR
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 916 - 938
+
+```{r PSTR correlation matrix and scatter plots, eval=FALSE, results='hide'}
+
+## Create new correlation dataframe for SSID
+dip_corr_df <- p_df[,c(10:11,14:17,21:23)] %>% 
+  mutate(shape = case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+  
+
+## Plot correlation matrix and scatter plot of all PSTR physiology
+png(file = "Figures/Supplemental_Figures/PSTR_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300) 
+
+corrgram(dip_corr_df, order = FALSE, lower.panel=panel.fill.R2, upper.panel=panel.pts.col, text.panel=panel.txt.brdr,
+         col.regions=colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = dip_corr_df$color, pch = as.numeric(as.character(dip_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+Same adjustments were made as in the previous example.
+
+```{r PSTR correlation matrix and scatter plots fixed, results='hide', warning = FALSE}
+
+## Create new correlation dataframe for SSID
+dip_corr_df <- p_df[,c(10:11,14:17,21:23)] |>
+  dplyr::mutate(shape = dplyr::case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = dplyr::case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+  
+
+## Plot correlation matrix and scatter plot of all PSTR physiology
+png(file = "Figures/Supplemental_Figures/PSTR_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300) 
+
+corrgram::corrgram(dip_corr_df, order = FALSE, lower.panel=panel.fill.R2, upper.panel=panel.pts.col, text.panel=panel.txt.brdr,
+         col.regions=colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = dip_corr_df$color, pch = as.numeric(as.character(dip_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+### Correlation matrix PAST
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 940 - 962
+
+```{r PAST correlation matrix and scatter plots, eval = FALSE, warning = FALSE, results='hide'}
+
+## Create new correlation dataframe for SSID
+por_corr_df <- a_df[,c(10:11,14:16,18,21:23)] %>% 
+  mutate(shape = case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+  
+
+## Plot correlation matrix and scatter plot of all PAST physiology
+png(file = "Figures/Supplemental_Figures/PAST_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300) 
+
+corrgram(por_corr_df, order = FALSE, lower.panel=panel.fill.R2, upper.panel=panel.pts.col, text.panel=panel.txt.brdr,
+         col.regions=colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = por_corr_df$color, pch = as.numeric(as.character(por_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+Same adjustments were made as in previous.
+
+```{r PAST correlation matrix and scatter plots fixed, warning = FALSE, results='hide'}
+
+## Create new correlation dataframe for SSID
+por_corr_df <- a_df[,c(10:11,14:16,18,21:23)] |>
+  dplyr::mutate(shape = dplyr::case_when(ftemp == "28" ~ "19",
+                           ftemp == "31" ~ "21"),
+         color = dplyr::case_when(fpco2 == "300" ~ "#b2abd2",
+                            fpco2 == "420" ~ "#5e3c99",
+                            fpco2 == "680" ~ "#fdb863",
+                            fpco2 == "3290" ~ "#e66101"))
+  
+
+## Plot correlation matrix and scatter plot of all PAST physiology
+png(file = "Figures/Supplemental_Figures/PAST_PhysCorrelations.png", width = 240.57, height = 164.025, units='mm', res = 300) 
+
+corrgram::corrgram(por_corr_df, order = FALSE, lower.panel=panel.fill.R2, upper.panel=panel.pts.col, text.panel=panel.txt.brdr,
+         col.regions=colorRampPalette(c("#ffffcc", "#c7e9b4", "#225ea8")), 
+         color = por_corr_df$color, pch = as.numeric(as.character(por_corr_df$shape)),
+         labels = c("symbiont \ndensity", "host \nprotein", "chlorophyll a", "color \nintensity", "calcification \nrate", "host \ncarbohydrate", "host \nlipid")) 
+
+dev.off() 
+
+```
+
+### Figure 2
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 967 - 993
+
+```{r save all species correlation/scatter plots, fig.width = 12, fig.height = 3.3}
+
+ssid_corr_plot <- readPNG("Figures/Supplemental_Figures/SSID_PhysCorrelations.png")
+pstr_corr_plot <- readPNG("Figures/Supplemental_Figures/PSTR_PhysCorrelations.png")
+past_corr_plot <- readPNG("Figures/Supplemental_Figures/PAST_PhysCorrelations.png")
+
+ssid_corr_plot <- ggplot() + 
+  background_image(ssid_corr_plot) + 
+  theme_void() + 
+  ggtitle(expression(paste(bold("  A)   "), italic("S. siderea"))))
+
+pstr_corr_plot <- ggplot() + 
+  background_image(pstr_corr_plot) + 
+  theme_void() + 
+  ggtitle(expression(paste(bold("  B)   "), italic("P. strigosa"))))
+
+past_corr_plot <- ggplot() + 
+  background_image(past_corr_plot) + 
+  theme_void() + 
+  ggtitle(expression(paste(bold("  C)   "), italic("P. asteroides"))))
+
+ggarrange(ssid_corr_plot, pstr_corr_plot, past_corr_plot, nrow = 1)
+  ggsave("Figures/Final_Figures/Figure2_PhysCorrelations.pdf", width = 12, height = 3.1, useDingbats=FALSE)
+  ggsave("Figures/Final_Figures/Figure2_PhysCorrelations.png", width = 12, height = 3.1, dpi = 650)
+  ggsave("Figures/Final_Figures/Figure2_PhysCorrelations.tiff", width = 12, height = 3.1, dpi = 650)
+
+```
+## Plasticity
+
+### SSID Distance analysis
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1025 - 1073
+
+```{r SSID distance analysis}
+
+## Calculate the PCA distance with custom function
+sid_dist <- PCAplast(pca = s_pca, # the PCA dataframe containing the PCA eigenvalues
+          data = s_df[,c(1,7,8, 10,11,12,27,2)], # the condition/treatment data corresponding to samples
+          sample_ID = "coral", # the name of column that provide unique ID per sample (if blank, will pull rownames for this)
+          num_pca =  "all", # the number of PCAs to include in analysis (default is 'all', but you can specify another number with a minimum of "2" PCAs)
+          control_col = "treat2", # what the 'treatment' column is called
+          control_lvl = "420_28", # control level of the treatment 
+          group = "colony") # the grouping column (i.e., colony)
+
+
+# with strong random effects of colony??
+# marginal R2 --> fixed v random effect variance: likely more variance at colony level over treatment
+
+ssid_dist_mod <- glmer(dist ~ reef * fpco2 * ftemp + (1 | colony), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod2 <- glmer(dist ~ reef * fpco2 + ftemp + (1 | colony), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod2b <- glmer(dist ~ reef * fpco2 + ftemp + (1 | colony) + (1 | tank), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod3 <- glmer(dist ~ reef + fpco2 * ftemp + (1 | colony), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod4 <- glmer(dist ~ reef + fpco2 + ftemp + (1 | colony), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod5 <- glmer(dist ~ reef * (fpco2 + ftemp) + (1 | colony), family = Gamma(link = "log"), data = sid_dist)
+ssid_dist_mod6 <- glmer(dist ~ fpco2 + ftemp + (1 | colony), family = Gamma(link = "log"), data = sid_dist) # best fit
+
+# check for best-fit model
+ssid_plast_aic <- compare_performance(ssid_dist_mod, ssid_dist_mod2, ssid_dist_mod2b, ssid_dist_mod3, ssid_dist_mod4, ssid_dist_mod5, ssid_dist_mod6)
+#plot(ssid_plast_aic)
+
+
+## Best-fit GLMM with Gamma log link
+ssid_dist_glm <- glmer(dist ~ reef * fpco2 + ftemp + (1 | colony) + (1 | tank), family = Gamma(link = "log"), data = sid_dist)
+ssid_glm_out <- summary(ssid_dist_glm) # summary output of the GLM
+
+
+## conditional and marginal R2
+r2_nakagawa(ssid_dist_glm)
+#  Conditional R2: 0.542 -- fixed and random effects
+#     Marginal R2: 0.307 -- fixed effects only
+
+## Below info taken from appendix 3 of Gok A, Ngendahimana DK, Fagerholm CL, French RH, Sun J, Bruckman LS (2017) Predictive models of poly(ethylene-terephthalate) film degradation under multi-factor accelerated weathering exposures. PLoS ONE 12(5): e0177614. https://doi.org/10.1371/journal.pone.0177614
+
+# "Marginal and conditional are R2 values for generalized mixed-effects models
+# calculated using the r.squaredGLMM function of the MuMIn [1] package that
+# implements a method developed by Nakagawa and Schielzeth [2]. Marginal R2
+# provides the variance explained only by fixed effects and conditional R2
+# provides the variance explained by the entire model, i.e., both fixed effects 
+# and random effects. Fitted R2 is analogous to adjusted R2 generalized for 
+# measuring explained variation in linear mixed-effects models [3]."
+
+```
+
+Plenty of warnings with dropped columns. If this interferes with later steps, then may cause issues. For now, this does not need to be alterred.
+
+### Bootstrapping
+
+```{r SSID plasticity bootstrapping, warning=FALSE}
+
+## Pull the treatment and distance data from the model
+newdata_ssid <- data.frame(ssid_dist_glm@frame[-1])
+
+## Bootstrap distances using custom bootstrap function
+ssid_boot_out <- replicate(bootnum, bootFUN(model = ssid_dist_glm, newdata = newdata_ssid)) 
+
+## Calculate the mean, 95% lowerCI, and 95% upperCI from the boot matrix and add it to dataframe
+ssid_boot <- cbind(sid_dist, as.data.frame(t(apply(ssid_boot_out, 1, function(x) c(mean(x), quantile(x, c(0.025, 0.975)))))))
+colnames(ssid_boot)[10:12] <- c("estimate", "lowerci", "upperci") # rename mean/CI columns
+
+## save as rda object
+save(ssid_boot, file = "Data/Bootstrap/SSID_PlastBoot.rda")
+
+```
+
+In order to allow data to save, created folders within my directory to allow the file path to execute
+
+### Distance Plot
+
+```{r plots of SSID distances}
+
+## Load boot data
+load(file = "Data/Bootstrap/SSID_PlastBoot.rda")
+ssid_boot$treat2 <- paste(ssid_boot$fpco2, ssid_boot$ftemp, sep = "_") # need to rename treatments with the mean pCO2, not temp-specific ones
+ssid_boot$treat2 <- factor(ssid_boot$treat2,
+                           levels = c("300_28", "300_31", "420_31", "680_28", "680_31", "3290_28", "3290_31"),
+                           labels = c("pre industrial; 28C", "pre industrial; 31C", "current; 31C", "end-of-century; 28C", "end-of-century; 31C", "extreme; 28C", "extreme; 31C")) # adjust treatment levels
+
+
+## Plasticity plot
+ssid_plast_plot <- ggplot(ssid_boot, aes(x = reef, y = estimate, color = treat2, fill = treat2, shape = treat2)) +
+  theme_pubr() +
+  theme(legend.title = element_blank(), axis.ticks.x = element_blank()) +
+  guides(shape = guide_legend(ncol = 1), fill = guide_legend(override.aes = list(linetype = 0)), color = guide_legend(override.aes = list(linetype = 0))) +
+  geom_point(aes(x = reef, y = dist), size = 2, alpha = 0.4, position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.55)) +
+  geom_linerange(aes(ymin = lowerci, ymax =upperci), size = 1, position = position_dodge(width = 0.55)) +
+  geom_point(size = 3, alpha = 0.8, stroke = 1, position = position_dodge(width = 0.55)) +
+  scale_shape_manual(values = c(21, 21, 23, 24, 24, 22, 22)) +
+  scale_color_manual(values = c("#b2abd2", "#b2abd2", "#5e3c99", "#fdb863", "#fdb863", "#e66101", "#e66101")) + 
+  scale_fill_manual(values = c("#b2abd2", "white", "white", "#fdb863", "white", "#e66101", "white")) + 
+  labs(y = "PC distance from control", x = "") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 8)) +
+  scale_x_discrete(labels = c("F" = "Offshore", "N" = "Inshore")) +
+  ggtitle(expression(paste(bold("A)   "), italic("S. siderea"))))
+  
+
+## Model output and R2
+ssid_glm_out # summary output of the GLMER
+r2_nakagawa(ssid_dist_glm) # conditional and marginal R2
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
