@@ -6,7 +6,7 @@ title: "Reproducing Coral Reef Community Structure Analyses"
 
 Taken from OA_OW_Physiology_manuscript.Rmd lines 70 - 85
 
-```{r install missing packages, eval=FALSE, message=FALSE, warning=FALSE}
+```{r install missing packages, message=FALSE, warning=FALSE}
 
 ## install packages from source code
 #install.packages("devtools") # if you need to install this package
@@ -76,6 +76,7 @@ library(ggrepel)
  source("Code/CustomFunctions.R")
 
 ```
+
 All libraries loaded correctly. As this file is not connected to the GitHub repository at the moment, the source for the custom functions did not load. I have two options to contine: I can load the functions in directly, or I can directly source from the GitHub Repository. The latter is preferred, so I will proceed with that method.
 
 First, I cloned the github repository to my local environment with the following line:
@@ -130,7 +131,7 @@ source("Bove_CoralPhysiology/Code/CustomFunctions.R")
 
 ```
 
-After cloning and adding the downloaded respository Bove_CoralPhysiology  before the line, I have successfully sourced the code.
+After cloning and adding the downloaded respository Bove_CoralPhysiology before the line, I have successfully sourced the code.
 
 ## Formatting
 
@@ -383,6 +384,8 @@ a_df <- subset(df_90, species == "A")
 
 ```
 
+Everything runs as expectede
+
 ## PCA
 
 ### PCA for species Siderastrea Siderea
@@ -416,7 +419,7 @@ s_pca <- prcomp(sid_pca_df, center = TRUE, scale= TRUE)
 
 ```
 
-Error caught in line 297 of renaming column. 
+Error caught in line 297 of renaming column.
 
 ```{r SSID PCA fixed}
 
@@ -770,7 +773,6 @@ a_pca <- prcomp(por_pca_df, center = TRUE, scale= TRUE)
 
 ```
 
-
 Error will be solved with dplyr specification
 
 ```{r PAST PCA fixed}
@@ -1091,7 +1093,7 @@ dev.off()
 
 ```
 
-Passing parameter %>% brings up error. Switching to pipe operator |> bypasses the error. Mutate function not found, fixed by specifying dplyr package. The same procedure was executed to fix the error on the case_when function. PNG unable to open, so I created a folder as described in line 1104 to allow png to resume. Corrgram function not found, so I specified that it was inside the corrgram package and the chunk fully ran.
+Passing parameter %\>% brings up error. Switching to pipe operator \|\> bypasses the error. Mutate function not found, fixed by specifying dplyr package. The same procedure was executed to fix the error on the case_when function. PNG unable to open, so I created a folder as described in line 1104 to allow png to resume. Corrgram function not found, so I specified that it was inside the corrgram package and the chunk fully ran.
 
 ```{r SSID correlation matrix and scatter plots fixed, results='hide', warning = FALSE}
 
@@ -1255,6 +1257,7 @@ ggarrange(ssid_corr_plot, pstr_corr_plot, past_corr_plot, nrow = 1)
   ggsave("Figures/Final_Figures/Figure2_PhysCorrelations.tiff", width = 12, height = 3.1, dpi = 650)
 
 ```
+
 ## Plasticity
 
 ### Siderastrea
@@ -1335,6 +1338,7 @@ colnames(ssid_boot)[10:12] <- c("estimate", "lowerci", "upperci") # rename mean/
 save(ssid_boot, file = "Data/Bootstrap/SSID_PlastBoot.rda")
 
 ```
+
 Running this code chunk takes an incredibly long amount of time. EVAL should be set to false, but to ensure the process is correct, all should be run once to ensure it matches what is known.
 
 In order to allow data to save, created folders within my directory to allow the file path to execute
@@ -1545,11 +1549,11 @@ colnames(past_boot)[10:12] <- c("estimate", "lowerci", "upperci") # rename mean/
 ## save as rda object
 save(past_boot, file = "Data/Bootstrap/PAST_PlastBoot.rda")
 
-```  
+```
 
 Received error of non-conformable arguments on line 1540. Going line by line through bootFUN in custom functions doc, nothing fails. Made an attempt to directly put the function into the code chunk. The code ran with no errors, but the data points were different than the original figure and the confidence intervals were lost for this species. The other species came out as expected.
 
-This is a major issue, which must be resolved, but since we have created a (albeit incorrect) data file, we will procede.
+This is a major issue, which must be resolved, but since we have the data file that the author used, we will proceed with the included file.
 
 #### Distance Plot
 
@@ -1603,6 +1607,8 @@ ggarrange(ssid_plast_plot, pstr_plast_plot, past_plast_plot, common.legend = TRU
 
 ## Figure S1
 
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1356 - 1401
+
 ```{r FigS1 SST figure for supps, eval=FALSE, include=FALSE}
 
 ####### This first portion details how satellite data was obtained from MODIS using BU's SCC:
@@ -1650,9 +1656,13 @@ ggarrange(ssid_plast_plot, pstr_plast_plot, past_plast_plot, common.legend = TRU
 
 ```
 
+Link is forbidden and I am unable to download. Since the raw data is included in the repository, I will proceed with their data.
+
 ### S1 Actual Plot
 
-```{r SST plot for Fig S1, warning=FALSE, fig.height = 4, fig.width = 10}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1403 - 1488
+
+```{r SST plot for Fig S1, warning=FALSE, fig.height = 4, fig.width = 10, eval=FALSE}
 
 ### Load the site lat/lon locations from .csv
 sites <- data.frame(Site = c("PHMR", "SCMR"),
@@ -1739,9 +1749,100 @@ ggsave("Figures/Supplemental_Figures/S1_Fig.tiff", width = 10, height = 4, dpi =
 
 ```
 
+With the data file taken from the repository, the analysis went further, but because of an error in the rename function, the code needed the specification of the dplyr package.
+
+```{r SST plot for Fig S1 fixed, warning=FALSE, fig.height = 4, fig.width = 10}
+
+### Load the site lat/lon locations from .csv
+sites <- data.frame(Site = c("PHMR", "SCMR"),
+                    lon = c(-88.572760, -88.261440),
+                    lat = c(16.189870, 16.116670))
+
+
+## convert sampling points to spatial points and applying projection to points
+LongLat <- cbind(sites$lon, sites$lat) # make lat/lon data frame
+sitePTS <- SpatialPoints(LongLat) # convert data frame to spatialpoints object
+proj <- "+proj=longlat +ellps=WGS84 +datum=WGS84" # this is the projection that will be applied to data
+projection(sitePTS) <- proj # apply specified projection
+
+
+### Open sst_BZ_cropped.nc file
+raster_path <- "Data/Raw_data/sst_BZ_cropped.nc" # specify the path to the Day SST netCDF (no path here since its in current working directory)
+sst_raster <- brick(raster_path, varname = "sst") # create raster brick of daily SST data
+# plot(sst_raster) # sometimes I plot to quickly have R plot this to make sure I am getting multiple layers and reasonable values
+
+netCDF <- nc_open(raster_path) # next, 'open' the netCDF to pull the time element that is extracted from the 'history' parameter
+history <- ncatt_get(netCDF,0,"history")[[2]] # pull the 'history' parameter (this has all the file names that we can pull dates per layer from)
+
+# create a dataframe of the pulled file name and then removed text strings per file (now each layer in the raster brick)
+dates <- data.frame(time = strsplit(history, " ")[[1]][c(-1:-20, -249:-250)]) %>% # Range for night: -3290:-3296; Range for day: -3291:-3297)
+  mutate(time = gsub("AQUA_MODIS.", "", time), # removes 'AQUA_MODIS.' from the file names
+         time = gsub(".L3m.MO.SST.sst.4km.nc", "", time)) # removes '.L3m.DAY.SST4.sst4.4km_subset.nc' from the file names
+
+# make new column of above data frame that converts the numbers to a date string
+dates$date_time <- as.Date(paste(substr(dates$time, 1, 4), substr(dates$time, 5, 6), substr(dates$time, 7, 8), sep = "-"))
+
+
+### Extract SST from raster by site (plus the 5 km buffer) and convert to usable data frame
+site_SST <- raster::extract(sst_raster, sitePTS, fun = mean) # this will take the mean SST within the buffer per site, resulting in one value per layer
+
+
+# convert the extracted matrix to final data frame
+site_SST_xts <- xts(t(site_SST), dates$date_time) # creates extensible time-series object, t is used to transpose the matrix because xts assumes dates are along lines, not columns. This also adds the time element of the layers since it was not present in the matrix
+site_SST_df <- data.frame(date=index(t(site_SST_xts)), coredata(t(site_SST_xts))) # convert xts object to data frame
+site_SST_df$site <- factor(seq(1, length(site_SST_df$date), 1)) # add ID to identify unique sampling sites
+site_SST_df$date <- NULL # remove this column since it is repetitive 
+site_SST_long <- gather(site_SST_df, date, sst, X2002.12.01:X2021.11.01) # convert from wide to long format (note the first date is 31 Dec 2004 so this can be removed downstream)
+
+# update the data frame for for better dates and site IDs
+sst_gps <- site_SST_long %>% separate(date, c("year", "month", "day")) # create year, month, and day column columns
+sst_gps$date <- paste(sst_gps$month, sst_gps$day, sst_gps$year, sep = "/") # creates a combined date column (XYear.Month)
+sst_gps <- spread(sst_gps, site, sst) # converts from long to wide format
+
+sst_gps <- sst_gps %>% 
+  dplyr::rename(
+    PHMR = `1`,
+    SCMR = `2`,
+  )
+
+
+## convert data from wide to long
+sst_long <- gather(sst_gps, site, sst, PHMR:SCMR) %>% 
+  mutate(date = as.Date(gsub("X2", "2", date), format = "%m/%d/%Y"))
+
+p_mean <- sst_long %>% filter(site == "PHMR") %>% 
+  summarise(mean = mean(sst, na.rm = TRUE))
+
+s_mean <- sst_long %>% filter(site == "SCMR") %>% 
+  summarise(mean = mean(sst, na.rm = TRUE))
+
+
+ggplot(data = sst_long, aes(x = date, y = sst, colour = site)) +
+  geom_hline(aes(yintercept = 28), colour = "#4393c3", size = 1, alpha = 0.2, linetype = "dashed") +
+  annotate("text", x = max(sst_long$date), y = 31.2, label = "31C treat", colour = "#b2182b") +
+  geom_hline(aes(yintercept = 31), colour = "#b2182b", size = 1, alpha = 0.2, linetype = "dashed") +
+  annotate("text", x = max(sst_long$date), y = 27.8, label = "28C treat", colour = "#4393c3") +
+  geom_hline(data = sst_long %>% filter(site == "PHMR"), aes(yintercept = mean(sst, na.rm = TRUE)), colour = "#e9aa2b", size = 2, alpha = 0.5) +
+  #annotate("text", x = min(sst_long$date), y = p_mean[[1]] + 0.2, label = paste0("mean: ", round(p_mean[[1]], 2), "C"), colour = "#e9aa2b") +
+  geom_hline(data = sst_long %>% filter(site == "SCMR"), aes(yintercept = mean(sst, na.rm = TRUE)), colour = "#00a08b", size = 2, alpha = 0.5) +
+  #annotate("text", x = min(sst_long$date), y = s_mean[[1]] - 0.2, label = paste0("mean: ", round(s_mean[[1]], 2), "C"), colour = "#00a08b") +  
+  geom_line(aes(group = site)) +
+  scale_color_manual("", labels = c("PHMR (inshore)", "SCMR (offshore)"), values = c("#e9aa2b", "#00a08b")) +
+  labs(x = "", y = "SST (C)") +
+  theme_classic() +
+  theme(legend.position = c(0.9, 0.13))
+
+ggsave("Figures/Supplemental_Figures/S1_Fig.pdf", width = 10, height = 4, useDingbats=FALSE)
+ggsave("Figures/Supplemental_Figures/S1_Fig.png", width = 10, height = 4, dpi = 650)
+ggsave("Figures/Supplemental_Figures/S1_Fig.tiff", width = 10, height = 4, dpi = 650)
+
+```
+
 ## Figure S3
 
-```{r water chem through time, fig.width = 12, fig.height = 8}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1509 - 1541
+
+```{r water chem through time, warning = FALSE, fig.width = 12, fig.height = 8}
 
 ## Read in the water chem values from the experiment
 chem <- read.csv("Data/Raw_data/Exp_waterchem.csv") %>% 
@@ -1775,7 +1876,11 @@ ggsave("Figures/Supplemental_Figures/S3_Fig.tiff", width = 12, height = 8, dpi =
 
 ```
 
-## S4
+After copying in the data from the experiment, everything ran correctly.
+
+## Figure S4
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1551 - 1561
 
 ```{r PCA plot reefs, fig.height = 8, fig.width = 13}
 
@@ -1789,9 +1894,13 @@ ggarrange(reef_pca_all, trt_pca_all, ncol = 1)
 
 ```
 
-## S5
+Everything ran as expected.
 
-```{r all coral physiology plot, fig.width = 10, fig.height = 13}
+## Figure S5
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1571 - 1599
+
+```{r all coral physiology plot, warning = FALSE, fig.width = 10, fig.height = 13}
 
 ## subset for the physiology parameters per species and convert from wide to long format
 df_withT_phys <- gather(df_withT, param, value, c(14:17, 34, 38:39, 42))[,-13:-33]
@@ -1822,6 +1931,8 @@ ggsave("Figures/Supplemental_Figures/S5_Fig.tiff", width = 10, height = 13, dpi 
 ```
 
 ## S6
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1609 - 1659
 
 ```{r species PCA by reef plot}
 
@@ -1875,7 +1986,11 @@ all_pt_pca <- autoplot(all_pca, data = all_df,
 
 ```
 
+Everything runs as expected.
+
 ### Save figure
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1661 - 1668
 
 ```{r save fig s11, fig.width = 10, fig.height = 4.5, fig.align = 'center'}
 
@@ -1886,7 +2001,11 @@ ggarrange(all_reef_pca, all_pt_pca, ncol = 2, labels = "AUTO", widths = c(0.6, 1
 
 ```
 
+Everything runs as expected.
+
 ## Figure S7
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1678 - 1700
 
 ```{r SSID PCAs by host versus symbiont}
 
@@ -1912,7 +2031,11 @@ s_pca_symb <- prcomp(sid_pca_df_symb, center = TRUE, scale= TRUE)
 
 ```
 
+Everything runs as expected.
+
 ### S7 Plot
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1702 - 1854
 
 ```{r Plot SSID PCAs by host versus symbiont}
 
@@ -2068,7 +2191,11 @@ sid_symb_reef_pca <- autoplot(s_pca_symb, data = s_df,
 
 ```
 
+Everything runs as expected.
+
 ### Arranging and plotting
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1856 - 1870
 
 ```{r combined SSID host v symb PCA plot, fig.width = 9, fig.height = 10}
 
@@ -2086,7 +2213,11 @@ ggarrange(ssid_host_symb_temp, ssid_host_symb_pco2, ssid_host_symb_reef, nrow = 
 
 ```
 
+Everything runs as expected
+
 ## Figure S8
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1880 - 1902
 
 ```{r PSTR PCAs by host versus symbiont}
 
@@ -2112,7 +2243,11 @@ p_pca_symb <- prcomp(dip_pca_df_symb, center = TRUE, scale= TRUE)
 
 ```
 
+Everything runs as expected.
+
 ### Plot PSTR
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 1904 - 2056
 
 ```{r Plot PSTR PCAs by host versus symbiont}
 
@@ -2268,7 +2403,11 @@ dip_symb_reef_pca <- autoplot(p_pca_symb, data = p_df,
 
 ```
 
+Everything runs as expected
+
 ### Arranging and Plotting
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2058 - 2072
 
 ```{r combined PSTR host v symb PCA plot, fig.width = 9, fig.height = 10}
 
@@ -2286,7 +2425,11 @@ ggarrange(PSTR_host_symb_temp, PSTR_host_symb_pco2, PSTR_host_symb_reef, nrow = 
 
 ```
 
+Everything runs as expected.
+
 ## Figure S9
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2082 - 2104
 
 ```{r PAST PCAs by host versus symbiont}
 
@@ -2312,7 +2455,11 @@ a_pca_symb <- prcomp(por_pca_df_symb, center = TRUE, scale= TRUE)
 
 ```
 
+Everything runs as expected
+
 ### Plot PAST
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2106 - 2258
 
 ```{r Plot PAST PCAs by host versus symbiont}
 
@@ -2468,7 +2615,11 @@ por_symb_reef_pca <- autoplot(a_pca_symb, data = a_df,
 
 ```
 
+Everything runs as expected
+
 ### Arranging and Plotting
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2260 - 2273
 
 ```{r combined PAST host v symb PCA plot, fig.width = 9, fig.height = 10}
 
@@ -2485,7 +2636,11 @@ ggarrange(PAST_host_symb_temp, PAST_host_symb_pco2, PAST_host_symb_reef, nrow = 
 
 ```
 
+Everything runs as expected.
+
 ## Removed figure with host vs symb
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2295 - 2374
 
 ```{r host v symb plasticity distance calculations }
 
@@ -2568,9 +2723,13 @@ combined_dist <- rbind(host_dist, symb_dist)
 
 ```
 
+Everything runs as expected
+
 ### Plasticity analysis
 
-```{r host v symb plasticity analyses}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2376 - 2395
+
+```{r host v symb plasticity analyses, warning=FALSE}
 
 ## Model selection (via AIC)
 comb_dist_mod  <- glmer(dist ~ species * part * reef * fpco2 * ftemp + (1 | colony), family = Gamma(link = "log"), data = combined_dist)
@@ -2593,7 +2752,9 @@ comb_plast_aic <- compare_performance(comb_dist_mod, comb_dist_mod2, comb_dist_m
 
 ### Final Model
 
-```{r host v symb plasticity final model}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2397 - 2405
+
+```{r host v symb plasticity final model, warning = FALSE}
 
 ## Best-fit GLMM with Gamma log link
 comb_dist_glm <- glmer(dist ~ species * part * (fpco2 + ftemp) + (1 | colony), family = Gamma(link = "log"), data = combined_dist)
@@ -2601,9 +2762,11 @@ comb_glm_out <- summary(comb_dist_glm) # summary output of the GLM
 
 ```
 
+Model failed to converge, but no error.
+
 ### Bootstrapping
 
-```{r plasticity of host v symb bootstrapping, eval=FALSE, include=FALSE}
+```{r plasticity of host v symb bootstrapping, warning=FALSE, eval=FALSE}
 
 ## Pull the treatment and distance data from the model
 newdata_comb <- data.frame(comb_dist_glm@frame[-1])
@@ -2620,7 +2783,28 @@ save(comb_boot, file = "Data/Bootstrap/HostVSymb_PlastBoot.rda")
 
 ```
 
+The first portion of the chunk ran smoothly, though it took several hours to run through. However, at the line where column names were assigned, there was an error that names \[18\] must be the same length as the vector \[12\]. The comb_boot frame has 12 columns, but the columns which had names being reassigned were 16-18 and didn't exist. To solve this, I will run the code to reassign names \[10:12\].
+
+```{r plasticity of host v symb bootstrapping fixed, warning=FALSE, eval=FALSE}
+
+## Pull the treatment and distance data from the model
+newdata_comb <- data.frame(comb_dist_glm@frame[-1])
+
+## Bootstrap distances using custom bootstrap function
+comb_boot_out <- replicate(bootnum, bootFUN(model = comb_dist_glm, newdata = newdata_comb)) 
+
+## Calculate the mean, 95% lowerCI, and 95% upperCI from the boot matrix and add it to dataframe
+comb_boot <- cbind(combined_dist, as.data.frame(t(apply(comb_boot_out, 1, function(x) c(mean(x), quantile(x, c(0.025, 0.975)))))))
+colnames(comb_boot)[10:12] <- c("estimate", "lowerci", "upperci") # rename mean/CI columns
+
+## save as rda object
+save(comb_boot, file = "Data/Bootstrap/HostVSymb_PlastBoot.rda")
+
+```
+
 ### Species labels
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2422 - 2439
 
 ```{r species labels for distance plots}
 
@@ -2641,9 +2825,13 @@ comb_boot <- comb_boot %>%
 
 ```
 
+Runs smoothly.
+
 ### Plotting
 
-```{r host v symb plasticity plots, fig.width = 11, fig.height = 3.5}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2441 - 2464
+
+```{r host v symb plasticity plots, fig.width = 11, fig.height = 3.5, warning=FALSE}
 
 ## Plot host v symbiont plasticity per species
 ggplot(comb_boot, aes(x = part, y = estimate, color = treat, fill = treat, shape = treat)) +
@@ -2668,7 +2856,11 @@ ggplot(comb_boot, aes(x = part, y = estimate, color = treat, fill = treat, shape
 
 ```
 
+Runs smoothly.
+
 ## Table A
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2479 - 2528
 
 ```{r table of N}
 
@@ -2721,7 +2913,11 @@ Table_S1
 
 ```
 
+Runs smoothly.
+
 ## Table B
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2538 - 2556
 
 ```{r PERMANOVA AIC table}
 
@@ -2743,7 +2939,11 @@ Table_S2
 
 ```
 
+Runs smoothly.
+
 ## Table C
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2566 - 2602
 
 ```{r Table C for markdown}
 
@@ -2783,7 +2983,11 @@ Table_S3
 
 ```
 
+Runs smoothly.
+
 ## Table D
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2614 - 2646
 
 ```{r Table D for markdown}
 
@@ -2819,7 +3023,11 @@ Table_S4
 
 ```
 
+Runs smoothly.
+
 ## Table E
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2658 - 2702
 
 ```{r Table E for markdown}
 
@@ -2867,9 +3075,13 @@ Table_S5
 
 ```
 
+Runs smoothly.
+
 ## Table F
 
-```{r Table F for markdown}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2714 - 2741
+
+```{r Table F for markdown, eval=FALSE}
 
 ## combine model output
 all_pca_mod$treat <- rownames(all_pca_mod) # add column for rownames
@@ -2898,9 +3110,42 @@ Table_S6
 
 ```
 
+Received error of subscript out of bounds. There seems to be three rows, so the 2nd and 3rd rows will be put in italics instead to avoid subscript error. 
+
+```{r Table F for markdown fixed}
+
+## combine model output
+all_pca_mod$treat <- rownames(all_pca_mod) # add column for rownames
+all_pca_mod <- all_pca_mod[c(6, 1:5)] # reorder columns so treatment is first
+
+
+## update formatting of text 
+all_pca_mod <- all_pca_mod %>% 
+  mutate(SumOfSqs = round(as.numeric(SumOfSqs), 0), # round values
+         R2 = round(as.numeric(R2), 3),
+         `F` = round(as.numeric(`F`), 2),
+         `Pr(>F)` = round(as.numeric(`Pr(>F)`), 5)) %>% 
+  mutate(treat = gsub("[0-9]", "", treat), # rename the treatment IDs
+         treat = gsub("fpco", "pCO2", treat),
+         treat = gsub("ftemp", "temperature", treat),
+         treat = gsub("reef", "reef environment", treat)) %>% 
+  dplyr::rename("P-value" = `Pr(>F)`, # rename columns
+         " " = treat,
+         "Sum of Squares" = SumOfSqs)
+  
+## combine them with format
+Table_S6 <- kable(all_pca_mod, booktabs = TRUE, row.names = FALSE) %>%
+  kable_styling(font_size = 12, full_width = FALSE) %>% 
+  row_spec(c(2:3), italic = TRUE)
+Table_S6
+
+```
+
 ## Table G
 
-```{r Table G for markdown}
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2754 - 2800
+
+```{r Table G for markdown, eval=FALSE}
 
 ## combine model output
 pca_host_mod_out <- rbind(s_pca_host_mod, p_pca_host_mod, a_pca_host_mod) # combine all PERMANOVA model outputs
@@ -2948,7 +3193,59 @@ Table_S7
 
 ```
 
+Received error that the replacement has 15 rows while the data has 9. The pca_host_symb_mod_out frame has 9 rows, and we are adding in 5 rows in three categories (15). So, I will change the number from 5 to 3 in each and proceed. There was also an error in the combine them with format section for an out of bounds subscript. I will change the subscripts each to be 2:3, 5:6, and 8:9 respectively so that it is within the 9 rows.
+
+```{r Table G for markdown fixed}
+
+## combine model output
+pca_host_mod_out <- rbind(s_pca_host_mod, p_pca_host_mod, a_pca_host_mod) # combine all PERMANOVA model outputs
+pca_symb_mod_out <- rbind(s_pca_symb_mod, p_pca_symb_mod, a_pca_symb_mod) # combine all PERMANOVA model outputs
+pca_host_symb_mod_out <- cbind(pca_host_mod_out, pca_symb_mod_out)
+
+
+pca_host_symb_mod_out$treat <- rownames(pca_host_symb_mod_out) # add column for rownames
+pca_host_symb_mod_out$species <- c(rep("SSID", 3), rep("PSTR", 3), rep("PAST", 3)) # add column for species ID
+pca_host_symb_mod_out <- pca_host_symb_mod_out[c(11, 1:10, 12)] # reorder columns so treatment is first
+
+
+## update formatting of text 
+pca_host_symb_mod_out <- pca_host_symb_mod_out %>% 
+  mutate(SumOfSqs = round(as.numeric(SumOfSqs), 0), # round values from host
+         R2 = round(as.numeric(R2), 3),
+         `F` = round(as.numeric(`F`), 2),
+         `Pr(>F)` = round(as.numeric(`Pr(>F)`), 5)) %>% 
+  mutate(SumOfSqs.1 = round(as.numeric(SumOfSqs.1), 0), # round values from symbiont
+         R2.1 = round(as.numeric(R2.1), 3),
+         `F.1` = round(as.numeric(`F.1`), 2),
+         `Pr(>F).1` = round(as.numeric(`Pr(>F).1`), 5)) %>% 
+  mutate(treat = gsub("[0-9]", "", treat), # rename the treatment IDs
+         treat = gsub("fpco", "pCO2", treat),
+         treat = gsub("ftemp", "temperature", treat),
+         treat = gsub("reef", "reef environment", treat)) %>% 
+  dplyr::rename("P-value" = `Pr(>F)`, # rename columns
+         " " = treat,
+         "Sum of Squares" = SumOfSqs,
+         "Df " = Df.1,
+         "Sum of Squares " = SumOfSqs.1,
+         "R2 " = R2.1,
+         "F " = F.1,
+         "P-value " = `Pr(>F).1`)
+  
+## combine them with format
+Table_S7 <- kable(pca_host_symb_mod_out[-12], booktabs = TRUE, row.names = FALSE) %>%
+  kable_styling(font_size = 12, full_width = FALSE) %>% 
+  add_header_above(c(" " = 1, "Coral host" = 5, "Algal symbionts" = 5)) %>% 
+  pack_rows("Siderastrea Siderea", 1, 3, italic = TRUE) %>%
+  pack_rows("Pseudodiploria strigosa", 4, 6, italic = TRUE) %>%
+  pack_rows("Porites astreoides", 7, 9, italic = TRUE) %>% 
+  row_spec(c(2:3,5:6,8:9), italic = TRUE)
+Table_S7
+
+```
+
 ## Cut Table host/symb
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2813 - 2849
 
 ```{r Table XX for markdown}
 
@@ -2988,7 +3285,11 @@ Table_S8
 
 ```
 
+Runs smoothly.
+
 ### GLMM Table Host/Symb
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2863 - 2902
 
 ```{r Table XXb for markdown}
 
@@ -3031,7 +3332,11 @@ Table_S9
 
 ```
 
+Runs smoothly.
+
 ## Excel WB
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2912 - 2966
 
 ```{r excel WB, message=FALSE, warning=FALSE}
 
@@ -3089,7 +3394,11 @@ saveWorkbook(wb, file="Data/Supplemental/Supplemental_Tables.xlsx", overwrite = 
 
 ```
 
+Runs smoothly.
+
 ## Session Info
+
+Taken from OA_OW_Physiology_manuscript.Rmd lines 2972 - 2976
 
 ```{r}
 
@@ -3097,12 +3406,4 @@ sessionInfo()
 
 ```
 
-
-
-
-
-
-
-
-
-
+Runs smoothly.
