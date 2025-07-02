@@ -1,0 +1,352 @@
+---
+title: "Lab XX: Reproducibility"
+execute:
+  freeze: auto
+  echo: true
+  warning: false
+  message: false
+format: html
+bibliography: references.bib
+---
+
+::: callout-important
+# Due date
+
+This lab is due on **X.** To be considered on time, the following must be done by the due date:
+
+-   Final `.qmd` and `.pdf` files submitted to Canvas
+:::
+
+# Reproducibility
+
+In this lab, you will run code based on analysis in published studies. You will resolve any errors in the given code, detailing and fixing any differences in the provided analysis and the run code. Then, you will assess the reproducibility of the given analysis and document what errors and inconsistencies were encountered. The text excerpts used in this lab were adapted off @wagner2021
+
+# Learning goals
+
+By the end of the lab you will be able to…
+
+-   validate or invalidate the original findings of a research study
+
+-   Reproduce the figures and analysis from a research study
+
+-   Resolve errors common in code published from research studies
+
+-   Assess the reproducibility of the study
+
+# Getting started
+
+# Packages
+
+You will use the following packages in today’s lab. To install any missing packages, run the following chunk:
+
+```{r install missing packages, message=FALSE, warning=FALSE}
+
+## Used packages that need to be installed to run code (and can be sourced easier from CRAN):
+
+needed_packages <- c("tidyverse", "tidymodels", "knitr", "ggpubr", "pROC", "GGally", "caret", "caTools", "e1071", "MASS", "randomForest") # Specify necessary packages
+
+not_installed <- needed_packages[!(needed_packages %in% installed.packages()[ , "Package"])] # Extract not installed packages
+if(length(not_installed)) install.packages(not_installed) # Install not installed packages
+
+```
+
+The following will load the packages
+
+```{r}
+#| label: load-packages
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(tidymodels)
+library(knitr)
+library(ggpubr)
+library(pROC)
+library(GGally)
+library(caret)
+library(caTools)
+library(e1071)
+library(MASS)
+library(randomForest)
+```
+
+# Data
+
+The data in this lab contains measures describing the physiology of hypothetical edible and poisonous mushrooms. The secondary set was developed based on the species listed in a mushroom identification text book and results of a dataset developed by UCI in 1987. They simulated several characteristics based on this information. The data were orginally presented and analyzed in @wagner2021 and was obtained from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/848/secondary+mushroom+dataset).
+
+This analysis includes the following variables (after data cleaning and renaming):
+
+-   `cap-diameter`: diameter of mushroom cap measured in cm
+
+-   `cap-shape`: bell, conical, convex, flat, sunken, spherical, others
+
+-   `cap-color`: brown, buff, gray, green, pink, purple, red, white, yellow, blue, orange, black
+
+-   `does-bruise-or-bleed`: yes, no
+
+-   `gill-color`: see cap color
+
+-   `stem-height`: height of stem measured in cm
+
+-   `Area`: size of the rice grain measured in pixels
+
+-   `stem-width`: width of stem measured in mm
+
+-   `stem-color`: see cap color
+
+-   `has-ring`: yes, no
+
+-   `habitat`: grasses, leaves, meadows, paths, heaths, urban, waste, woods
+
+-   `season`: spring, summer, autumn, winter
+
+[Click here](https://archive.ics.uci.edu/dataset/848/secondary+mushroom+dataset) for the full data dictionary.
+
+# Exercises
+
+**Goal**: The goal of the analysis is to resolve any errors or add any code necessary to validate and reproduce the provided figures.
+
+## Exercise 0
+
+```{r}
+#| lable: read-data
+#| warning: false
+#| message: false
+mushrooms <- read.csv("data/mushrooms.csv", sep=';', na.strings=c("", "NA")) # Convert empty strings to NA
+```
+
+## Exercise 1
+
+```{r}
+cleaned_mushrooms <- mushrooms
+for (colname in colnames(mushrooms)){
+  if (sum(is.na(mushrooms[colname])) != 0){
+    cleaned_mushrooms[colname] <- NULL
+  }
+}
+cleaned_mushrooms <- subset(cleaned_mushrooms, select = -stem.color)
+
+cleaned_mushrooms$class <- factor(cleaned_mushrooms$class)
+levels(cleaned_mushrooms$class) <- c("Edible", "Poisonous")
+cleaned_mushrooms$does.bruise.or.bleed <- factor(cleaned_mushrooms$does.bruise.or.bleed)
+levels(cleaned_mushrooms$does.bruise.or.bleed) <- c("No", "Yes")
+cleaned_mushrooms$has.ring <- factor(cleaned_mushrooms$has.ring)
+levels(cleaned_mushrooms$has.ring) <- c("No", "Yes")
+cleaned_mushrooms$cap.shape <- factor(cleaned_mushrooms$cap.shape)
+levels(cleaned_mushrooms$cap.shape) <- c("Bell", "Conical", "Flat", "Others", "Spherical", "Sunken", "Convex")
+cleaned_mushrooms$cap.color <- factor(cleaned_mushrooms$cap.color)
+levels(cleaned_mushrooms$cap.color) <- c("Buff", "Red", "Gray", "Black", "Blue", "Brown", "Orange", "Pink", "Green", "Purple", "White", "Yellow")
+cleaned_mushrooms$gill.color <- factor(cleaned_mushrooms$gill.color)
+levels(cleaned_mushrooms$gill.color) <- c("Buff", "Red", "Gray", "Black", "Blue", "Brown", "Orange", "Pink", "Green", "Purple", "White", "Yellow")
+cleaned_mushrooms$habitat <-
+factor(cleaned_mushrooms$habitat)
+levels(cleaned_mushrooms$habitat) <- c("Woods", "Grasses", "Heaths", "Leaves", "Meadows", "Paths", "Urban", "Waste")
+cleaned_mushrooms$season <-
+factor(cleaned_mushrooms$season)
+levels(cleaned_mushrooms$season) <- c("Autumn", "Spring", "Summer", "Winter")
+
+cleaned_mushrooms <- cleaned_mushrooms |>
+  mutate(
+    binary_class = as.factor(if_else(class == "Poisonous", 1, 0)))
+```
+
+## Exercise 2
+
+
+```{r fig.width=16, fig.height=18}
+
+
+cap_edible_plot <- ggplot(subset(cleaned_mushrooms, class == "Edible"), aes(cap.shape, cap.diameter)) +
+  labs(title="Edible Mushroom Cap Diameter by Shape", x="Cap Shape", y="Cap Diameter (cm)") +
+  geom_boxplot()
+
+cap_poison_plot <- ggplot(subset(cleaned_mushrooms, class == "Poisonous"), aes(cap.shape, cap.diameter)) +
+  labs(title="Poisonous Mushroom Cap Diameter by Shape", x="Cap Shape", y="Cap Diameter (cm)") +
+  geom_boxplot()
+
+cap_color_edible_plot <- ggplot(subset(cleaned_mushrooms, class=="Edible"), aes(cap.color, cap.diameter)) + 
+  labs(title="Edible Mushroom Cap Diameter by Color", x="Cap Color", y="Cap Diameter (cm)") +
+  geom_boxplot()
+
+cap_color_poison_plot <- ggplot(subset(cleaned_mushrooms, class=="Poisonous"), aes(cap.color, cap.diameter)) + 
+  labs(title="Poisonous Mushroom Cap Diameter by Color", x="Cap Color", y="Cap Diameter (cm)") +
+  geom_boxplot()
+
+edible_plot <- ggplot(subset(cleaned_mushrooms, class == 'Edible'), aes(x = stem.width, y = stem.height, color= has.ring)) +
+  labs(title="Stem dimensions for Edible Mushrooms", color="Has Ring", x="Stem Width (cm)", y="Stem Height (cm)") +
+  geom_point()
+
+poison_plot <- ggplot(subset(cleaned_mushrooms, class == 'Poisonous'), aes(x = stem.width, y = stem.height, color=has.ring)) +
+  labs(title="Stem dimensions for Poisonous Mushrooms", color="Has Ring", x="Stem Width (cm)", y="Stem Height (cm)") +
+  geom_point()
+
+bruise_bleed <- as.data.frame(table(cleaned_mushrooms$does.bruise.or.bleed, cleaned_mushrooms$class))
+bruise_plot <- ggplot(bruise_bleed, aes(Var1, Var2, fill=Freq)) +
+  labs(title="Heat map of Bruising/Bleeding by Class", x="Does Bruise/Bleed", y="Class") +
+  theme(legend.key.width = unit(1, 'cm')) +
+  geom_tile()
+
+gill_color <- as.data.frame(table(cleaned_mushrooms$gill.color, cleaned_mushrooms$class))
+gill_color_plot <- ggplot(gill_color, aes(Var1, Var2, fill=Freq)) + 
+  labs(title="Heat map of Gill Color by Class", x="Gill Color", y="Class") +
+  theme(legend.key.width = unit(1, 'cm')) +
+  geom_tile()
+
+habitat <- as.data.frame(table(cleaned_mushrooms$habitat, cleaned_mushrooms$class))
+habitat_plot <- ggplot(habitat, aes(Var1, Var2, fill=Freq)) + 
+  labs(title="Heat map of Mushroom Habitat by Class", x="Habitat", y="Class") +
+  theme(legend.key.width = unit(1, 'cm')) +
+  geom_tile()
+
+season <- as.data.frame(table(cleaned_mushrooms$season, cleaned_mushrooms$class))
+season_plot <- ggplot(season, aes(Var1, Var2, fill=Freq)) + 
+  labs(title="Heat map of Season Mushroom is Found by Class", x="Season", y="Class") +
+  theme(legend.key.width = unit(1, 'cm')) +
+  geom_tile()
+
+ggarrange(cap_edible_plot, cap_poison_plot, cap_color_edible_plot, cap_color_poison_plot, edible_plot, poison_plot, bruise_plot, gill_color_plot, habitat_plot, season_plot, nrow = 5, ncol = 2)
+```
+
+## Exercise 3
+
+```{r}
+set.seed(105)
+
+mushroom_numbers <- sample(seq_len(nrow(cleaned_mushrooms)), size = 0.75*nrow(cleaned_mushrooms))
+
+mushroom_train <- cleaned_mushrooms[mushroom_numbers,]
+mushroom_test <- cleaned_mushrooms[-mushroom_numbers,]
+```
+
+## Exercise 4
+
+
+```{r}
+cap_fit <- lm(stem.height ~ cap.shape*cap.diameter + cap.color*cap.diameter + does.bruise.or.bleed + gill.color + stem.width*has.ring + habitat + season, data=mushroom_train)
+r2 <- glance(cap_fit)$r.squared
+VIF <- 1/(1 - r2)
+VIF
+```
+
+
+## Exercise 5
+
+```{r}
+logit_reg_model <- glm(binary_class ~ stem.height + cap.diameter + cap.shape*cap.diameter + cap.color*cap.diameter + does.bruise.or.bleed + gill.color + stem.width + stem.width*has.ring + habitat + season, data = mushroom_train, family = "binomial")
+
+naive_bayes_model <- naiveBayes(binary_class ~ stem.height + cap.shape + cap.diameter + cap.color + does.bruise.or.bleed + gill.color + stem.width + has.ring + habitat + season, data = mushroom_train)
+
+lda_model <- lda(binary_class ~ stem.height + cap.diameter + cap.shape*cap.diameter + cap.color*cap.diameter + does.bruise.or.bleed + gill.color + stem.width + stem.width*has.ring + habitat + season, data = mushroom_train)
+
+rf_model <- randomForest(binary_class ~ stem.height + cap.diameter + cap.shape + cap.color + cap.diameter + does.bruise.or.bleed + gill.color + stem.width + has.ring + habitat + season, data = mushroom_train)
+
+```
+
+## Exercise 6
+
+```{r}
+logit_pred_prob <- predict.glm(logit_reg_model, newdata=mushroom_test, type="response")
+mushroom_test$logit_pred_prob <- logit_pred_prob
+mushroom_test$logit_pred_class <- factor(ifelse(mushroom_test$logit_pred_prob >0.50, 1, 0))
+mushroom_test$logit_pred_class <- factor(mushroom_test$logit_pred_class)
+mushroom_logit_conf_mat <-
+  table(mushroom_test$binary_class, mushroom_test$logit_pred_class)
+mushroom_logit_conf_mat
+TN <- mushroom_logit_conf_mat[1,1]
+FP <- mushroom_logit_conf_mat[1,2]
+FN <- mushroom_logit_conf_mat[2,1]
+TP <- mushroom_logit_conf_mat[2,2]
+precision <- TP/(TP + FP)
+recall <- TP/(TP + FN)
+accuracy_logit <- (TP + TN) / sum(mushroom_logit_conf_mat)
+accuracy_logit
+f2_logit <- (1 + 2^2)*precision*recall/((2^2*precision) + recall)
+f2_logit
+
+bayes_pred_prob <- predict(naive_bayes_model, newdata = mushroom_test, type = "raw")
+naive_bayes_pred_class <- predict(naive_bayes_model, newdata = mushroom_test)
+naive_bayes_conf_mat <- table(mushroom_test$binary_class, naive_bayes_pred_class)
+naive_bayes_conf_mat
+TN <- naive_bayes_conf_mat[1,1]
+FP <- naive_bayes_conf_mat[1,2]
+FN <- naive_bayes_conf_mat[2,1]
+TP <- naive_bayes_conf_mat[2,2]
+precision <- TP/(TP + FP)
+recall <- TP/(TP + FN)
+accuracy_bayes <- (TP + TN) / sum(naive_bayes_conf_mat)
+accuracy_bayes
+F2_bayes  <- (1 + 2^2)*precision*recall/((2^2*precision) + recall)
+F2_bayes
+
+lda_pred_prob <- predict(lda_model, newdata = mushroom_test, type = "prob")
+lda_pred_class <- predict(lda_model, newdata = mushroom_test)
+lda_conf_mat <- table(mushroom_test$binary_class, lda_pred_class[["class"]])
+lda_conf_mat
+TN <- lda_conf_mat[1,1]
+FP <- lda_conf_mat[1,2]
+FN <- lda_conf_mat[2,1]
+TP <- lda_conf_mat[2,2]
+precision <- TP/(TP + FP)
+recall <- TP/(TP + FN)
+accuracy_lda <- (TP + TN) / sum(lda_conf_mat)
+accuracy_lda
+F2_lda <- (1 + 2^2)*precision*recall/((2^2*precision) + recall)
+F2_lda
+
+rf_pred_prob <- predict(rf_model, newdata = mushroom_test, type = "prob")
+rf_pred_class <- predict(rf_model, newdata = mushroom_test)
+rf_conf_mat <- table(mushroom_test$binary_class, rf_pred_class)
+rf_conf_mat
+TN <- rf_conf_mat[1,1]
+FP <- rf_conf_mat[1,2]
+FN <- rf_conf_mat[2,1]
+TP <- rf_conf_mat[2,2]
+precision <- TP/(TP + FP)
+recall <- TP/(TP + FN)
+accuracy_rf <- (TP + TN) / sum(rf_conf_mat)
+accuracy_rf
+F2_rf <- (1 + 2^2)*precision*recall/((2^2*precision) + recall)
+F2_rf
+```
+
+## Exercise 7
+
+```{r fig.width=7, fig.height=7}
+models <- c("RF", "LDA", "Logit-Reg", "Naiv-Bayes")
+accuracy <- c(accuracy_rf, accuracy_lda, accuracy_logit, accuracy_bayes)
+f2 <- c(F2_rf, F2_lda, f2_logit, F2_bayes)
+model_ratings <- data.frame(models, accuracy, f2)
+
+Accuracy_plot <- ggplot(model_ratings, aes(x = models, y=accuracy)) +
+  labs(title="Model Accuracy", x="Model Type", y="Accuracy") +
+  geom_bar(stat = "identity")
+  
+F2_plot <- ggplot(model_ratings, aes(x = models, y=f2)) +
+  labs(title="Model F2 Score", x="Model Type", y="Accuracy") +
+  geom_bar(stat = "identity")
+
+ggarrange(Accuracy_plot, F2_plot, nrow = 1, ncol = 2)
+```
+
+## Exercise 8
+
+ROC Curves
+
+```{r}
+roc.logit <- roc(as.numeric(mushroom_test$binary_class), logit_pred_prob)
+
+
+roc.bayes <- roc(as.numeric(mushroom_test$binary_class), bayes_pred_prob[,2])
+
+
+roc.lda <- roc(as.numeric(mushroom_test$binary_class), lda_pred_prob$posterior[, 2])
+
+
+roc.rf <- roc(as.numeric(mushroom_test$binary_class), rf_pred_prob[,2])
+
+ggroc(list(Logit = roc.logit, Bayes = roc.bayes, LDA = roc.lda, RF = roc.rf)) +
+  labs(title = "ROC Curve Comparison")
+```
+
+## Exercise 9
+
